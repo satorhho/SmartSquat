@@ -1,16 +1,21 @@
-# smartsquat
+# smartsquat flutter-flask
 
 Mobile app for Smartsquat
 
-## Getting Started
 
-This project is a starting point for a Flutter application.
+## To run
+Run first the server in the server folder that is the main.py
 
-A few resources to get you started if this is your first Flutter project:
+"python main.py"
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
+Next is to copy the ipv4 address in the running server then change the url in the openurl function in the main.dart then run it.
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+"flutter run"
+
+
+## To apk
+In the flutter just run the:
+"flutter build apk"
+
+### Running in the android
+When you have installed the apk file in the android make sure your connected to the same network as your server. The pc of the server there Windows Defender Firewall must be off to access the server.
