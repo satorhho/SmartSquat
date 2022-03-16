@@ -1,19 +1,15 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/widgets.dart';
 import 'package:body_detection/models/pose.dart';
 import 'package:body_detection/models/pose_landmark.dart';
 import 'package:body_detection/models/pose_landmark_type.dart';
 
-class PoseMaskPainter extends CustomPainter {
-  PoseMaskPainter({
+class PosePainter extends CustomPainter {
+  PosePainter({
     required this.pose,
-    required this.mask,
     required this.imageSize,
   });
 
   final Pose? pose;
-  final ui.Image? mask;
   final Size imageSize;
   final pointPaint = Paint()..color = const Color.fromRGBO(255, 255, 255, 0.8);
   final leftPointPaint = Paint()..color = const Color.fromRGBO(223, 157, 80, 1);
@@ -28,7 +24,6 @@ class PoseMaskPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    _paintMask(canvas, size);
     _paintPose(canvas, size);
   }
 
@@ -60,44 +55,18 @@ class PoseMaskPainter extends CustomPainter {
         canvas.drawCircle(offsetForPart(part), 3, rightPointPaint);
       }
 
-      // Landmark labels
-      TextSpan span = TextSpan(
-        text: part.type.toString().substring(16),
-        style: const TextStyle(
-          color: Color.fromRGBO(0, 128, 255, 1),
-          fontSize: 10,
-          shadows: [
-            ui.Shadow(
-              color: Color.fromRGBO(255, 255, 255, 1),
-              offset: Offset(1, 1),
-              blurRadius: 1,
-            ),
-          ],
-        ),
-      );
-      TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left);
-      tp.textDirection = TextDirection.ltr;
-      tp.layout();
-      tp.paint(canvas, offsetForPart(part));
+      
     }
   }
 
-  void _paintMask(Canvas canvas, Size size) {
-    if (mask == null) return;
-
-    canvas.drawImageRect(
-        mask!,
-        Rect.fromLTWH(0, 0, mask!.width.toDouble(), mask!.height.toDouble()),
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        maskPaint);
-  }
-
   @override
-  bool shouldRepaint(PoseMaskPainter oldDelegate) {
+  bool shouldRepaint(PosePainter oldDelegate) {
     return oldDelegate.pose != pose ||
-        oldDelegate.mask != mask ||
         oldDelegate.imageSize != imageSize;
   }
+
+
+//*****Landmarks
 
   List<List<PoseLandmarkType>> get connections => [
         [PoseLandmarkType.leftEar, PoseLandmarkType.leftEyeOuter],
