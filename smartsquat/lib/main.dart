@@ -6,8 +6,8 @@ import 'package:body_detection/models/pose.dart';
 import 'package:flutter/material.dart';
 
 import 'package:permission_handler/permission_handler.dart';
-
 import 'pose_painter.dart';
+
 
 void main() {
   runApp(const MyApp());
@@ -28,7 +28,6 @@ class _MyAppState extends State<MyApp> {
   Pose? _detectedPose;
   Image? _cameraImage;
   Size _imageSize = Size.zero;
-
 
   Future<void> _startCameraStream() async {
     final request = await Permission.camera.request();
@@ -76,12 +75,11 @@ class _MyAppState extends State<MyApp> {
   void _handlePose(Pose? pose) {
     // Ignore if navigated out of the page.
     if (!mounted) return;
-
+    
     setState(() {
       _detectedPose = pose;
     });
   }
-
 
   Future<void> _toggleDetectPose() async {
     if (_isDetectingPose) {
