@@ -2,7 +2,10 @@ import 'dart:io';
 import 'dart:ui';
 import 'dart:typed_data';
 import 'package:tuple/tuple.dart';
+
 import 'package:flutter/widgets.dart';
+import 'package:path_provider/path_provider.dart';
+
 import 'package:body_detection/models/pose.dart';
 import 'package:body_detection/models/pose_landmark.dart';
 import 'package:body_detection/models/pose_landmark_type.dart';
@@ -21,8 +24,9 @@ class PosePainter extends CustomPainter {
   final leftPointPaint = Paint()..color = const Color.fromRGBO(223, 157, 80, 1);
   final rightPointPaint = Paint()..color = const Color.fromRGBO(100, 208, 218, 1);
   final linePaint = Paint()..color = const Color.fromRGBO(255, 255, 255, 0.9)..strokeWidth = 3;
+  final extDir = getExternalStorageDirectory();
 
-  final Future<Directory> path = Directory('cnn_inputs').create(recursive: true); 
+  
   final int counter = 0; 
 
   List<Uint8List> segments = [];
@@ -83,125 +87,129 @@ class PosePainter extends CustomPainter {
 
     
 
-    for (final lm in pose!.landmarks) { //lm is landmark
+    // for (final lm in pose!.landmarks) { //lm is landmark
 
-      // One of the 33 detectable body landmarks.
-      int id = lm.type.index;
+    //   // One of the 33 detectable body landmarks.
+    //   int id = lm.type.index;
 
-      if(id == 11){
-        tmpLmVal = double.parse(lm.position.x.toStringAsFixed(1));  //if shoulder, take x val
-      }
+    //   if(id == 11){
+    //     tmpLmVal = double.parse(lm.position.x.toStringAsFixed(1));  //if shoulder, take x val
+    //   }
 
-                                //Set timer for 2 seconds
-      if(!isTimed){             // if not timed, 
-        initialTime = (now.millisecondsSinceEpoch/1000);
-        if(id == 11){
-          initialAnklePos = double.parse(lm.position.x.toStringAsFixed(1));
-        }
-      }
-      else{
-        if( (now.millisecondsSinceEpoch/1000) >= (initialTime + 2) ){
-            isRecording = true;
-        }
-      }
+    //                             //Set timer for 2 seconds
+    //   if(!isTimed){             // if not timed, 
+    //     initialTime = (now.millisecondsSinceEpoch/1000);
+    //     if(id == 11){
+    //       initialAnklePos = double.parse(lm.position.x.toStringAsFixed(1));
+    //     }
+    //   }
+    //   else{
+    //     if( (now.millisecondsSinceEpoch/1000) >= (initialTime + 2) ){
+    //         isRecording = true;
+    //     }
+    //   }
 
-      if(tmpLmVal == initialAnklePos){ 
-        isTimed = true;
-      }
-      else{
-          isTimed = false;
-      }
+    //   if(tmpLmVal == initialAnklePos){ 
+    //     isTimed = true;
+    //   }
+    //   else{
+    //       isTimed = false;
+    //   }
 
-      if(isRecording){
-        if( id == 11){
-          saveRecords(canvas, size, recording, pose);
-          recThis = double.parse(lm.position.y.toStringAsFixed(1));
+    //   if(isRecording){
+    //     if( id == 11){
+    //       saveRecords(canvas, size, recording, pose);
+    //       recThis = double.parse(lm.position.y.toStringAsFixed(1));
           
-          if(monitorVal > recThis){
-            isRecording = false;
-            isTracking = segmentize(recording, segments);
-            monitorVal = 0.01;
-            isTimed = false;
-            initialTime = now.millisecondsSinceEpoch/1000;
-            initialTime2 = now.millisecondsSinceEpoch/1000;
-          }
-        }    
-        monitorVal = double.parse(lm.position.y.toStringAsFixed(1));
-      }
+    //       if(monitorVal > recThis){
+    //         isRecording = false;
+    //         isTracking = segmentize(recording, segments);
+    //         monitorVal = 0.01;
+    //         isTimed = false;
+    //         initialTime = now.millisecondsSinceEpoch/1000;
+    //         initialTime2 = now.millisecondsSinceEpoch/1000;
+    //       }
+    //     }    
+    //     monitorVal = double.parse(lm.position.y.toStringAsFixed(1));
+    //   }
 
-      if (isTracking){
-        if(id == 11){
+    //   if (isTracking){
+    //     if(id == 11){
         
-          if(monitorVal < double.parse(lm.position.y.toStringAsFixed(1)) || recording[0].item2 == double.parse(lm.position.y.toStringAsFixed(1))){
-            isTracking = false;
-            saveRecords(canvas, size, recording, pose);
-            segments.add(recording[(recording.length)-1].item1);
-            saveImgs(recording, segments);
-            isRecording = false;
-            isTimed = false;
-            initialTime = now.millisecondsSinceEpoch/1000;
-            initialTime2 = now.millisecondsSinceEpoch/1000;
-            monitorVal = 0.01;
-            Paragraph se= "Squat Ended" as Paragraph;
-            canvas.drawParagraph(se , const Offset(0.0, 0.0));
-          }
-        }
-      }
-    }
+    //       if(monitorVal < double.parse(lm.position.y.toStringAsFixed(1)) || recording[0].item2 == double.parse(lm.position.y.toStringAsFixed(1))){
+    //         isTracking = false;
+    //         saveRecords(canvas, size, recording, pose);
+    //         segments.add(recording[(recording.length)-1].item1);
+    //         saveImgs(recording, segments);
+    //         isRecording = false;
+    //         isTimed = false;
+    //         initialTime = now.millisecondsSinceEpoch/1000;
+    //         initialTime2 = now.millisecondsSinceEpoch/1000;
+    //         monitorVal = 0.01;
+    //         Paragraph se= "Squat Ended" as Paragraph;
+    //         canvas.drawParagraph(se , const Offset(0.0, 0.0));
+    //       }
+    //     }
+    //   }
+    // }
 
     
   }
 
-  Future<void> saveRecords(Canvas canvas, Size size, List<Tuple2< Uint8List, double>> recording, Pose? pose) async {
+  // Future<void> saveRecords(Canvas canvas, Size size, List<Tuple2< Uint8List, double>> recording, Pose? pose) async {
     
-    final recorder = PictureRecorder();
-    Canvas newcanvas = canvas;
-    newcanvas = Canvas(
-            recorder,
-            Rect.fromPoints(const Offset(0.0, 0.0),
-                Offset(size.width, size.height)));
-    final picture = recorder.endRecording();
+  //   final recorder = PictureRecorder();
+  //   Canvas newcanvas = canvas;
+  //   newcanvas = Canvas(
+  //           recorder,
+  //           Rect.fromPoints(const Offset(0.0, 0.0),
+  //               Offset(size.width, size.height)));
+  //   final picture = recorder.endRecording();
 
-    final image = await picture.toImage(size.width.toInt(), size.height.toInt());
-    final dataBytes =  await image.toByteData(format: ImageByteFormat.png);
-    final list = dataBytes!.buffer.asUint8List();
-    Tuple2<Uint8List, double> tmp = Tuple2(list, double.parse(pose!.landmarks[11].position.y.toStringAsFixed(1)));
-    recording.add(tmp);
+  //   final image = await picture.toImage(size.width.toInt(), size.height.toInt());
+  //   final dataBytes =  await image.toByteData(format: ImageByteFormat.png);
+  //   final list = dataBytes!.buffer.asUint8List();
+  //   Tuple2<Uint8List, double> tmp = Tuple2(list, double.parse(pose!.landmarks[11].position.y.toStringAsFixed(1)));
+  //   recording.add(tmp);
 
-  }
+  // }
 
-  bool segmentize(List<Tuple2< Uint8List, double>> recordingArr, List<Uint8List> segments){
+  // bool segmentize(List<Tuple2< Uint8List, double>> recordingArr, List<Uint8List> segments){
 
-    segments.add(recordingArr[0].item1);         
-    double initialYval = recordingArr[0].item2;
-    int startIdx = 0;
-    for(int i = 0; i < (recordingArr.length); i++ ){          
-      if(recordingArr[i].item2 > initialYval){
-          startIdx = i;
-          break;
-      }
-    }
-    segments.add(recordingArr[ (((recordingArr.length)+startIdx)/2).ceil() ].item1); //mid_1
-    segments.add(recordingArr[ (recordingArr.length)-2 ].item1); // bot_1
-    return true;
-  }
+  //   segments.add(recordingArr[0].item1);         
+  //   double initialYval = recordingArr[0].item2;
+  //   int startIdx = 0;
+  //   for(int i = 0; i < (recordingArr.length); i++ ){          
+  //     if(recordingArr[i].item2 > initialYval){
+  //         startIdx = i;
+  //         break;
+  //     }
+  //   }
+  //   segments.add(recordingArr[ (((recordingArr.length)+startIdx)/2).ceil() ].item1); //mid_1
+  //   segments.add(recordingArr[ (recordingArr.length)-2 ].item1); // bot_1
+  //   return true;
+  // }
 
-  void saveImgs(List<Tuple2< Uint8List, double>> recordingArr, List<Uint8List> segments) async {
+  // void saveImgs(List<Tuple2< Uint8List, double>> recordingArr, List<Uint8List> segments) async {
+
+  //   final Future<Directory> directory = Directory('$extDir/images/cnn_inputs').create(recursive: true);
+  //   String path = directory.toString();
+  //   int counter = 0;
+  //   for(Uint8List segment in segments){ 
     
-    int counter = 0;
-    for(Uint8List segment in segments){ 
-    
-    final result = File('$path/input$counter.png')
-      .writeAsBytesSync(segment.buffer.asInt8List());
+  //   final result = File('$path/input$counter.png')
+  //     .writeAsBytesSync(segment.buffer.asInt8List());
 
-    counter++;
+  //   result;
+    
+  //   counter++;
     
 
-    }
-    segments.clear();
-    recordingArr.clear();
+  //   }
+  //   segments.clear();
+  //   recordingArr.clear();
     
-  }
+  // }
 
 
   @override
@@ -253,3 +261,5 @@ class PosePainter extends CustomPainter {
         [PoseLandmarkType.leftIndexFinger, PoseLandmarkType.leftPinkyFinger],
       ];
 }
+
+
