@@ -29,7 +29,6 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependencies:
   body_detection: ^0.0.3
-  camera: ^0.9.4+16 
 
   
   flutter:
@@ -41,7 +40,6 @@ dependencies:
   cupertino_icons: ^1.0.2
   permission_handler: ^9.2.0
   tuple: ^2.0.0
-  path_provider: ^2.0.9
   image_gallery_saver: ^1.7.1
 
 dev_dependencies:

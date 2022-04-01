@@ -1,19 +1,14 @@
-import 'dart:ui' as ui;
+import 'dart:async';
 import 'dart:typed_data';
-import 'package:body_detection/models/pose_landmark.dart';
 import 'package:tuple/tuple.dart';
-import 'package:flutter/rendering.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 
 import 'package:body_detection/body_detection.dart';
-
+import 'package:body_detection/models/pose_landmark.dart';
 import 'package:body_detection/models/image_result.dart';
 import 'package:body_detection/models/pose.dart';
 import 'package:flutter/material.dart';
-
-
-
 
 import 'pose_painter.dart';
 
@@ -39,23 +34,29 @@ class _MyAppState extends State<MyApp> {
   Pose? _detectedPose;
   Image? _cameraImage;
   Size _imageSize = Size.zero;
-  //Utilities
-  
-  
-  //Recording ulitilites
-  List<Uint8List> segments = [];
-  List<Tuple2<Uint8List, double>> recording = [];              //saves a list of tuple. Use recording[].item1 to get the image (which is in bytes), and recording[].item2 to get Y Coordinate
 
-  //timer utilities
+  //Utilities
+  // ~ Text
+    String squatPrompt = "";
+    String getLM = "";
+    String seg = "";
+  // ~ Recording
+  Uint8List list = Uint8List.fromList([0, 2, 5, 7, 42, 255]);
+  List<Uint8List> segments = [];
+  List<Tuple2<Uint8List, double>> recording = [];
+
+  // ~ Timer 
   double initialTime = (DateTime.now().millisecondsSinceEpoch/1000); 
   double initialTime2 = 0;
   double initLmPos = 0.01;
+  double initYpos = 0;
   double tmpLmVal =  0.1;
   double monitorVal = 0.01;
   double recThis = 0;
   bool isTimed = false;
   bool isRecording = false;
   bool isTracking = false;
+  
 
   Future<void> _startCameraStream() async {
     final request = await Permission.camera.request();
@@ -67,7 +68,7 @@ class _MyAppState extends State<MyApp> {
         onPoseAvailable: (pose) {
           if (!_isDetectingPose) return;
           _handlePose(pose);
-          segmentation(pose);
+          segmentation();
         },
       );
     }
@@ -90,12 +91,13 @@ class _MyAppState extends State<MyApp> {
     // https://github.com/flutter/flutter/issues/60160
     PaintingBinding.instance?.imageCache?.clear();
     PaintingBinding.instance?.imageCache?.clearLiveImages();
-
+    list = result.bytes;
     final image = Image.memory(
       result.bytes,
       gaplessPlayback: true,
       fit: BoxFit.contain,
     );
+    
 
     setState(() {
       _cameraImage = image;
@@ -148,29 +150,34 @@ class _MyAppState extends State<MyApp> {
       _selectedTabIndex = index;
     });
   }
-
-  void segmentation(Pose? pose) {
-    
-    for(PoseLandmark lm in pose!.landmarks){
-
+  int ctr = 0;
+  String land = "";
+  void segmentation() {
+    // land = "";
+    // ctr = 0;
+    for(PoseLandmark lm in _detectedPose!.landmarks){
+      
       int id = lm.type.index;
-
-      if(id == 11){
-        tmpLmVal = double.parse(lm.position.x.toStringAsFixed(1));  //if shoulder, take x val
+      // land = land + ctr.toString() + lm.type.toString() + "\n";
+      // ctr++;
+      if(id == 12){
+        land = lm.type.toString();
+        tmpLmVal = double.parse(lm.position.x.toStringAsFixed(1));    //if shoulder, take x val
       }
       //Set timer for 2 seconds
       if(isTimed == false){             // if not timed, 
         initialTime = (DateTime.now().millisecondsSinceEpoch/1000);
-        if(id == 11){
+        if(id == 12){
           initLmPos = double.parse(lm.position.x.toStringAsFixed(1));
         }
       } else if(isTimed){
-        double currTime = (DateTime.now().millisecondsSinceEpoch/1000);
-        if( currTime >= (initialTime + 1.5) ){
+        double currTime = (DateTime.now().millisecondsSinceEpoch/1000); 
+        if( currTime >= (initialTime + 2) ){
           isRecording = true;
+          squatPrompt = "Recording, Please Squat now";
         }
       }
-
+      
       if((tmpLmVal <= (initLmPos + 5)) && (tmpLmVal >= (initLmPos - 5))){ 
         isTimed = true;
       }
@@ -179,33 +186,40 @@ class _MyAppState extends State<MyApp> {
       }
 
       if(isRecording){
-        if( id == 11){
-          record();
+        if( id == 12){
+          record(lm.position.y);
+
           recThis = double.parse(lm.position.y.toStringAsFixed(1));
-          
-          if((monitorVal + 20) < recThis ){
+         
+          if(monitorVal - 3 > recThis ){
+            getLM = "Tracking \nCurrent = " + monitorVal.toString() + " Prev " + recThis.toString() ;
             isRecording = false;
             isTracking = segmentize();
-            monitorVal = 0.01;
+            seg = "Past count = " + ctr.toString();
+            monitorVal = 1000;
             isTimed = false;
             initialTime = (DateTime.now().millisecondsSinceEpoch/1000);
             initialTime2 = (DateTime.now().millisecondsSinceEpoch/1000);
           }
+          monitorVal = double.parse(lm.position.y.toStringAsFixed(1));
         }    
-        monitorVal = double.parse(lm.position.y.toStringAsFixed(1));
+        
       }
 
       if (isTracking){
-        if(id == 11){
+        if(id == 12){
 
           double currLm = double.parse(lm.position.y.toStringAsFixed(1));
-          bool offset = ((recording[0].item2 >= currLm -1) && (recording[0].item2 <= currLm + 1 ) );
           // (recording[0].item2 == currLm )
           
-          if( ( (monitorVal ) > currLm ) || (recording[0].item2 == currLm ) ){
+          if( recording[0].item2 +3 >= currLm) {
             isTracking = false;
-            record();
+            record(currLm);
+            
             segments.add(recording[(recording.length)-1].item1); //top_2
+            ctr++;
+            seg = seg + "\n Current " + ctr.toString();
+            squatPrompt = "Recording Done";
             saveImgs();
             isRecording = false;
             isTimed = false;
@@ -215,25 +229,39 @@ class _MyAppState extends State<MyApp> {
           }
         }
       }
+      if(id== 12){
+      }
     }
   }
+  int ctr1 = 0;
 
-  Future<void> record() async {
+  Future<void> save() async {
+
+    await ImageGallerySaver.saveImage(
+        Uint8List.fromList(list),
+        name: "input${ctr1.toString()}");
+        
+      ctr1++;
+  }
+
+  void record(double lm) {
+
     
-    RenderRepaintBoundary boundary = globalKey.currentContext?.findRenderObject() as RenderRepaintBoundary;
+    // RenderRepaintBoundary boundary = globalKey.currentContext?.findRenderObject() as RenderRepaintBoundary;
+    // boundary. markNeedsCompositingBitsUpdate();
+    // final image = await boundary.toImage();
+    // final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    // final pngBytes = byteData!.buffer.asUint8List();
 
-    final image = await boundary.toImage();
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    Uint8List pngBytes = byteData!.buffer.asUint8List();
-
-    Tuple2<Uint8List, double> tmp = Tuple2(pngBytes, double.parse(_detectedPose!.landmarks[11].position.y.toStringAsFixed(1)));
+    Tuple2<Uint8List, double> tmp = Tuple2(list, lm);
     recording.add(tmp);
-
+    
   }
 
   bool segmentize(){
 
     segments.add(recording[0].item1);         
+    ctr++;
     double initialYval = recording[0].item2;
     int startIdx = 0;
     for(int i = 0; i < (recording.length); i++ ){          
@@ -243,40 +271,26 @@ class _MyAppState extends State<MyApp> {
       }
     }
     segments.add(recording[ (((recording.length)+startIdx)/2).ceil() ].item1); //mid_1
+    ctr++;
     segments.add(recording[ (recording.length)-2 ].item1); // bot_1
+    ctr++;
     
     return true;
   }
 
-  void saveImgs() async {
+  void saveImgs()  {
 
     int counter = 0;
     for(Uint8List segment in segments){ 
     
-      final result = await ImageGallerySaver.saveImage(
+      ImageGallerySaver.saveImage(
         Uint8List.fromList(segment),
-        quality: 60,
         name: "input${counter.toString()}");
         
       counter+=1;
     }
     segments.clear();
     recording.clear();
-    
-  }
-
-   Future<void> sav() async {
-    
-    RenderRepaintBoundary boundary = globalKey.currentContext?.findRenderObject() as RenderRepaintBoundary;
-
-    final image = await boundary.toImage();
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    Uint8List pngBytes = byteData!.buffer.asUint8List();
-
-    final result = await ImageGallerySaver.saveImage(
-        Uint8List.fromList(pngBytes),
-        quality: 60,
-        name: "input");
   }
 
   Widget? get _selectedTab => _selectedTabIndex == 0
@@ -287,9 +301,7 @@ class _MyAppState extends State<MyApp> {
         child: Center(
           child: Column(
             children: [
-              ClipRect(
-                child: RepaintBoundary(
-                  key: globalKey,
+              ClipRect(                  
                   child: CustomPaint(
                     child: _cameraImage,
                     foregroundPainter: PosePainter(
@@ -298,13 +310,18 @@ class _MyAppState extends State<MyApp> {
                     ),
                   ),
                 ),
-              ),
               OutlinedButton(
                 onPressed: _toggleDetectPose,
                 child: _isDetectingPose
                     ? const Text('Turn off pose detection')
                     : const Text('Turn on pose detection'),
               ),
+              Center(
+                child: Text(squatPrompt),
+              ),
+              Text(land),
+              Text(getLM),
+              Text(seg),
             ],
           ),
         ),
