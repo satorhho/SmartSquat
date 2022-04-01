@@ -60,6 +60,7 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _startCameraStream() async {
     final request = await Permission.camera.request();
+    
     final request2 = await Permission.storage.request();
 
     if (request.isGranted) {
@@ -195,7 +196,7 @@ class _MyAppState extends State<MyApp> {
             getLM = "Tracking \nCurrent = " + monitorVal.toString() + " Prev " + recThis.toString() ;
             isRecording = false;
             isTracking = segmentize();
-            seg = "Past count = " + ctr.toString();
+            // seg = "Past count = " + ctr.toString();
             monitorVal = 1000;
             isTimed = false;
             initialTime = (DateTime.now().millisecondsSinceEpoch/1000);
@@ -210,15 +211,14 @@ class _MyAppState extends State<MyApp> {
         if(id == 12){
 
           double currLm = double.parse(lm.position.y.toStringAsFixed(1));
-          // (recording[0].item2 == currLm )
           
-          if( recording[0].item2 +3 >= currLm) {
+          if(currLm <= recording[0].item2 +3) {
             isTracking = false;
             record(currLm);
             
             segments.add(recording[(recording.length)-1].item1); //top_2
             ctr++;
-            seg = seg + "\n Current " + ctr.toString();
+            // seg = seg + "\n Current " + ctr.toString();
             squatPrompt = "Recording Done";
             saveImgs();
             isRecording = false;
@@ -246,35 +246,40 @@ class _MyAppState extends State<MyApp> {
 
   void record(double lm) {
 
-    
-    // RenderRepaintBoundary boundary = globalKey.currentContext?.findRenderObject() as RenderRepaintBoundary;
-    // boundary. markNeedsCompositingBitsUpdate();
-    // final image = await boundary.toImage();
-    // final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    // final pngBytes = byteData!.buffer.asUint8List();
-
     Tuple2<Uint8List, double> tmp = Tuple2(list, lm);
     recording.add(tmp);
     
   }
 
   bool segmentize(){
+    segments.add(recording[0].item1); // top_1
 
-    segments.add(recording[0].item1);         
-    ctr++;
-    double initialYval = recording[0].item2;
-    int startIdx = 0;
-    for(int i = 0; i < (recording.length); i++ ){          
-      if(recording[i].item2 > initialYval){
-          startIdx = i;
+    double prevFrameYval = recording[0].item2; // NOTE: The 2 index here is he 2nd decimal place
+    int changeIdx = 0;
+
+    // double nextFrameYval = recording[recording.length-2].item2;
+    // int changeIdxBot = 0;
+    
+    
+    for (int i= 0; i <recording.length; i++){
+      if( recording[i].item2 - 0.5 > prevFrameYval) {   //This is where the change starts from top_1 
+          changeIdx = i;
           break;
       }
     }
-    segments.add(recording[ (((recording.length)+startIdx)/2).ceil() ].item1); //mid_1
+            
+    // for(int j = 0; j < recording.length; j++){
+    //   if( recording[j].item2 <= nextFrameYval){ // This is where the change starts to bot_1
+    //       changeIdxBot = j-1;
+    //       break;
+    //       }
+    // }
+    segments.add(recording[(changeIdx + ((recording.length)-2)~/2.0)].item1);
+
     ctr++;
-    segments.add(recording[ (recording.length)-2 ].item1); // bot_1
+    segments.add(recording[(recording.length)-2].item1); // bot_1
     ctr++;
-    
+
     return true;
   }
 
