@@ -1,9 +1,9 @@
+
 import 'package:flutter/widgets.dart';
 
 import 'package:body_detection/models/pose.dart';
 import 'package:body_detection/models/pose_landmark.dart';
 import 'package:body_detection/models/pose_landmark_type.dart';
-
 
 
 class PosePainter extends CustomPainter {
@@ -18,17 +18,13 @@ class PosePainter extends CustomPainter {
   final leftPointPaint = Paint()..color = const Color.fromRGBO(223, 157, 80, 1);
   final rightPointPaint = Paint()..color = const Color.fromRGBO(100, 208, 218, 1);
   final linePaint = Paint()..color = const Color.fromRGBO(255, 255, 255, 0.9)..strokeWidth = 3;
-
-  
-  final int counter = 0; 
-
-  
+ 
   @override
   void paint(Canvas canvas, Size size) {
     _paintPose(canvas, size);
   }
 
-  
+
   void _paintPose(Canvas canvas, Size size) {
 
     if (pose == null) return;
@@ -60,13 +56,17 @@ class PosePainter extends CustomPainter {
     }
   }
 
+
   @override
   bool shouldRepaint(PosePainter oldDelegate) {
     return oldDelegate.pose != pose ||
         oldDelegate.imageSize != imageSize;
   }
   
-//*****Landmarks
+
+   
+
+// ***** Landmark Connections ***** //
 
   List<List<PoseLandmarkType>> get connections => [
         [PoseLandmarkType.leftEar, PoseLandmarkType.leftEyeOuter],
