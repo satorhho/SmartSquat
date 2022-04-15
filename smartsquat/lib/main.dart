@@ -44,14 +44,13 @@ class _MyAppState extends State<MyApp> {
     String pass = "";
     
   // ~ Recording Segments
-  late Uint8List list;
+  late Uint8List _image;
   List<Uint8List> segments = [];
   List<Tuple2<Uint8List, double>> recording = [];
-  late Pose recPose; 
+  late List<Pose> recPose; 
 
   // ~ Timer 
   double initialTime = (DateTime.now().millisecondsSinceEpoch/1000); 
-  double initialTime2 = 0;
   double initLmPos = 0.01;
   double initYpos = 0;
   double tmpLmVal =  0.1;
@@ -105,7 +104,7 @@ class _MyAppState extends State<MyApp> {
     // https://github.com/flutter/flutter/issues/60160
     PaintingBinding.instance?.imageCache?.clear();
     PaintingBinding.instance?.imageCache?.clearLiveImages();
-    list = result.bytes;
+    _image = result.bytes;
     final image = Image.memory(
       result.bytes,
       gaplessPlayback: true,
@@ -215,14 +214,13 @@ class _MyAppState extends State<MyApp> {
             monitorVal = 1000;
             isTimed = false;
             initialTime = (DateTime.now().millisecondsSinceEpoch/1000);
-            initialTime2 = (DateTime.now().millisecondsSinceEpoch/1000);
           }
           monitorVal = double.parse(lm.position.y.toStringAsFixed(1));
         }    
         
       }
       
-      // Tracks the user if the downward squat is over
+      // Tracks the user and checks if the squat is now going upward
 
       if (isTracking){
         if(id == 12){
@@ -236,13 +234,11 @@ class _MyAppState extends State<MyApp> {
             segments.add(recording[(recording.length)-1].item1); //top_2
             ctr++;
             
-            // seg = seg + "\n Current " + ctr.toString();
             squatPrompt = "Recording Done";
             predictImages();
             isRecording = false;
             isTimed = false;
             initialTime = (DateTime.now().millisecondsSinceEpoch/1000);
-            initialTime2 = (DateTime.now().millisecondsSinceEpoch/1000);
             monitorVal = 0.01;
           }
         }
@@ -253,31 +249,34 @@ class _MyAppState extends State<MyApp> {
  
   // ****************** Recording Segments ****************** //
 
+  // ~ Saves the Image, Pose Estimation and lm(y-coordinate of shoulder)
   void record(double lm) {
-    recPose = _detectedPose!;
-    Tuple2<Uint8List, double> tmp = Tuple2(list, lm);
+    recPose.add(_detectedPose!);
+    Tuple2<Uint8List, double> tmp = Tuple2(_image, lm);
     recording.add(tmp);
     
   }
 
+  // ~ Segmentizes the recorded squat and saves it in the list 'segments'
   bool saveSegments(){
     segments.add(recording[0].item1); // top_1
 
-    double prevFrameYval = recording[0].item2; // NOTE: The 2 index here is he 2nd decimal place
+    double prevFrameYval = recording[0].item2; //Top_1 y-coordinate
     int changeIdx = 0;
 
-    double nextFrameYval = recording[recording.length-2].item2;
+    double nextFrameYval = recording[recording.length-2].item2;  //Bot_1 y-coordinate
     int changeIdxBot = 0;
-
+    
+    
     for (int i= 0; i <recording.length-1; i++){
-      if( recording[i].item2 - 3 > prevFrameYval) {   //This is where the change starts from top_1 
+      if( recording[i].item2  >= prevFrameYval + 1) {   //Captures the index where the user has started to descend 
           changeIdx = i;
           break;
       }
     }
             
     for(int j = 0; j < recording.length-1; j++){
-      if( (recording[j].item2 <= (nextFrameYval +1)) && ( recording[j].item2 >= (nextFrameYval-1)) ){ // This is where the change starts to bot_1
+      if( recording[j].item2 >= (nextFrameYval - 2) ){ // Captures the index of the user's squat where it first reach the bot
           changeIdxBot = j;
           break;
           }
@@ -294,7 +293,7 @@ class _MyAppState extends State<MyApp> {
 
 // **************  CNN Model  ******************* //
 
-  // Runs the model
+  // Runs model on each of the segments
   void predictImages() async {
     
     for(int i=0; i<=3; i++){  
