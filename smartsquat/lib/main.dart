@@ -1,3 +1,5 @@
+import 'dart:math';
+import 'package:vector_math/vector_math.dart' as math;
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
@@ -14,7 +16,6 @@ import 'package:image/image.dart' as img;
 
 import 'pose_painter.dart';
 
-
 void main() {
   runApp(const MyApp());
 }
@@ -27,7 +28,6 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-
   GlobalKey globalKey = GlobalKey();
 
   int _selectedTabIndex = 0;
@@ -39,21 +39,23 @@ class _MyAppState extends State<MyApp> {
 
   // Utilities
   // ~ Text
-    List<String> out = ["a", "b", "c", "d"];
-    String squatPrompt = "";
-    String pass = "";
-    
+  List<String> out = ["a", "b", "c", "d"];
+  String squatPrompt = "";
+  String pass = "";
+
   // ~ Recording Segments
   late Uint8List _image;
   List<Uint8List> segments = [];
   List<Tuple2<Uint8List, double>> recording = [];
-  late List<Pose> recPose; 
+  List<Tuple2<Uint8List, Pose?>> pose_recording = [];
+  Uint8List list = Uint8List.fromList([0, 2, 5, 7, 42, 255]);
+  // late List<Pose> recPose;
 
-  // ~ Timer 
-  double initialTime = (DateTime.now().millisecondsSinceEpoch/1000); 
+  // ~ Timer
+  double initialTime = (DateTime.now().millisecondsSinceEpoch / 1000);
   double initLmPos = 0.01;
   double initYpos = 0;
-  double tmpLmVal =  0.1;
+  double tmpLmVal = 0.1;
   double monitorVal = 0.01;
   double recThis = 0;
   bool isTimed = false;
@@ -66,21 +68,19 @@ class _MyAppState extends State<MyApp> {
   // ~ CNN
   bool _loading = true;
   late List _output;
-  
 
   Future<void> _startCameraStream() async {
     final request = await Permission.camera.request();
 
     if (request.isGranted) {
       final request2 = await Permission.storage.request();
-      if (request2.isGranted){
+      if (request2.isGranted) {
         await BodyDetection.startCameraStream(
           onFrameAvailable: _handleCameraImage,
           onPoseAvailable: (pose) {
             if (!_isDetectingPose) return;
             _handlePose(pose);
             segmentation();
-    
           },
         );
       }
@@ -110,7 +110,6 @@ class _MyAppState extends State<MyApp> {
       gaplessPlayback: true,
       fit: BoxFit.contain,
     );
-    
 
     setState(() {
       _cameraImage = image;
@@ -121,7 +120,7 @@ class _MyAppState extends State<MyApp> {
   void _handlePose(Pose? pose) {
     // Ignore if navigated out of the page.
     if (!mounted) return;
-    
+
     setState(() {
       _detectedPose = pose;
     });
@@ -139,7 +138,6 @@ class _MyAppState extends State<MyApp> {
       _detectedPose = null;
     });
   }
-
 
   void _onTabEnter(int index) {
     // Camera tab
@@ -163,150 +161,148 @@ class _MyAppState extends State<MyApp> {
       _selectedTabIndex = index;
     });
   }
+
   int ctr = 0;
   String land = "";
-
 
   // *********** Segmentation Functions   ****************** //
 
   void segmentation() {
-
-    for(PoseLandmark lm in _detectedPose!.landmarks){
-      
+    for (PoseLandmark lm in _detectedPose!.landmarks) {
       int id = lm.type.index;
-      if(id == 12){
-        tmpLmVal = double.parse(lm.position.x.toStringAsFixed(1));    //if shoulder, take x val
+      if (id == 12) {
+        tmpLmVal = double.parse(
+            lm.position.x.toStringAsFixed(1)); //if shoulder, take x val
       }
 
       // Left shoulder is timed for 2 seconds, if landmark is within range of previous frame, start
-      
-      if(isTimed == false){             
-        initialTime = (DateTime.now().millisecondsSinceEpoch/1000);
-        if(id == 12){
+
+      if (isTimed == false) {
+        initialTime = (DateTime.now().millisecondsSinceEpoch / 1000);
+        if (id == 12) {
           initLmPos = double.parse(lm.position.x.toStringAsFixed(1));
         }
-      } else if(isTimed){
-        double currTime = (DateTime.now().millisecondsSinceEpoch/1000); 
-        if( currTime >= (initialTime + 2) ){
+      } else if (isTimed) {
+        double currTime = (DateTime.now().millisecondsSinceEpoch / 1000);
+        if (currTime >= (initialTime + 2)) {
           isRecording = true;
           squatPrompt = "Recording, Please Squat now";
         }
       }
-      
-      if((tmpLmVal <= (initLmPos + 5)) && (tmpLmVal >= (initLmPos - 5))){ 
+
+      if ((tmpLmVal <= (initLmPos + 5)) && (tmpLmVal >= (initLmPos - 5))) {
         isTimed = true;
-      }
-      else{
+      } else {
         isTimed = false;
       }
 
       //Records the downwards squat of the user
-      if(isRecording){
-        if(id == 12){
+      if (isRecording) {
+        if (id == 12) {
           record(lm.position.y);
-          
+
           recThis = double.parse(lm.position.y.toStringAsFixed(1));
-         
-          if(monitorVal - 3 > recThis ){
-            
+
+          if (monitorVal - 3 > recThis) {
             isRecording = false;
             isTracking = saveSegments();
             monitorVal = 1000;
             isTimed = false;
-            initialTime = (DateTime.now().millisecondsSinceEpoch/1000);
+            initialTime = (DateTime.now().millisecondsSinceEpoch / 1000);
           }
           monitorVal = double.parse(lm.position.y.toStringAsFixed(1));
-        }    
-        
+        }
       }
-      
+
       // Tracks the user and checks if the squat is now going upward
 
-      if (isTracking){
-        if(id == 12){
-
+      if (isTracking) {
+        if (id == 12) {
           double currLm = double.parse(lm.position.y.toStringAsFixed(1));
-          
-          if(currLm <= recording[0].item2 +3) {
+
+          if (currLm <= recording[0].item2 + 3) {
             isTracking = false;
             record(currLm);
-            
-            segments.add(recording[(recording.length)-1].item1); //top_2
+
+            segments.add(recording[(recording.length) - 1].item1); //top_2
+            checkError(pose_recording[(pose_recording.length) - 1].item2);
             ctr++;
-            
+
             squatPrompt = "Recording Done";
             predictImages();
             isRecording = false;
             isTimed = false;
-            initialTime = (DateTime.now().millisecondsSinceEpoch/1000);
+            initialTime = (DateTime.now().millisecondsSinceEpoch / 1000);
             monitorVal = 0.01;
           }
         }
       }
     }
   }
- 
- 
+
   // ****************** Recording Segments ****************** //
 
   // ~ Saves the Image, Pose Estimation and lm(y-coordinate of shoulder)
   void record(double lm) {
-    recPose.add(_detectedPose!);
+    // recPose.add(_detectedPose!);
     Tuple2<Uint8List, double> tmp = Tuple2(_image, lm);
     recording.add(tmp);
-    
+    Tuple2<Uint8List, Pose?> tmp_pose = Tuple2(list, _detectedPose);
+    pose_recording.add(tmp_pose);
   }
 
   // ~ Segmentizes the recorded squat and saves it in the list 'segments'
-  bool saveSegments(){
+  bool saveSegments() {
     segments.add(recording[0].item1); // top_1
+    checkError(pose_recording[0].item2);
 
     double prevFrameYval = recording[0].item2; //Top_1 y-coordinate
     int changeIdx = 0;
 
-    double nextFrameYval = recording[recording.length-2].item2;  //Bot_1 y-coordinate
+    double nextFrameYval =
+        recording[recording.length - 2].item2; //Bot_1 y-coordinate
     int changeIdxBot = 0;
-    
-    
-    for (int i= 0; i <recording.length-1; i++){
-      if( recording[i].item2  >= prevFrameYval + 1) {   //Captures the index where the user has started to descend 
-          changeIdx = i;
-          break;
+
+    for (int i = 0; i < recording.length - 1; i++) {
+      if (recording[i].item2 >= prevFrameYval + 1) {
+        //Captures the index where the user has started to descend
+        changeIdx = i;
+        break;
       }
     }
-            
-    for(int j = 0; j < recording.length-1; j++){
-      if( recording[j].item2 >= (nextFrameYval - 2) ){ // Captures the index of the user's squat where it first reach the bot
-          changeIdxBot = j;
-          break;
-          }
+
+    for (int j = 0; j < recording.length - 1; j++) {
+      if (recording[j].item2 >= (nextFrameYval - 2)) {
+        // Captures the index of the user's squat where it first reach the bot
+        changeIdxBot = j;
+        break;
+      }
     }
-    segments.add(recording[((changeIdx + changeIdxBot)~/2.0)].item1);
+    segments.add(recording[((changeIdx + changeIdxBot) ~/ 2.0)].item1);
+    checkError(pose_recording[((changeIdx + changeIdxBot) ~/ 2.0)].item2);
     ctr++;
-    segments.add(recording[(recording.length)-2].item1); // bot_1
+    segments.add(recording[(recording.length) - 2].item1); // bot_1
+    checkError(pose_recording[(pose_recording.length) - 2].item2);
     ctr++;
 
     return true;
   }
 
-
-
 // **************  CNN Model  ******************* //
 
   // Runs model on each of the segments
   void predictImages() async {
-    
-    for(int i=0; i<=3; i++){  
+    for (int i = 0; i <= 3; i++) {
       await recognizeImageBinary(segments[i], i);
     }
 
     segments.clear();
     recording.clear();
+    pose_recording.clear();
   }
 
   //loads the model
   recognizeImageBinary(Uint8List image, int i) async {
-    
     img.Image? oriImage = img.decodeJpg(image);
     img.Image resizedImage = img.copyResize(oriImage!, height: 224, width: 224);
     var output = await Tflite.runModelOnBinary(
@@ -321,7 +317,7 @@ class _MyAppState extends State<MyApp> {
   }
 
   //Processes image for binary input
-   Uint8List imageToByteListFloat32(
+  Uint8List imageToByteListFloat32(
       img.Image image, int inputSize, double mean, double std) {
     var convertedBytes = Float32List(1 * inputSize * inputSize * 3);
     var buffer = Float32List.view(convertedBytes.buffer);
@@ -337,7 +333,7 @@ class _MyAppState extends State<MyApp> {
     return convertedBytes.buffer.asUint8List();
   }
 
-    @override
+  @override
   void initState() {
     //initState is the first function that is executed by default when this class is called
     super.initState();
@@ -353,19 +349,16 @@ class _MyAppState extends State<MyApp> {
     Tflite.close();
   }
 
-   classifyImage(File image, int i) async {
-    
+  classifyImage(File image, int i) async {
     pass = "Classify Image";
     //this function runs the model on the image
     _output = (await Tflite.runModelOnImage(
       path: image.path,
-      numResults:8, 
-
+      numResults: 8,
     ))!;
 
-    _loading = false;   
-    out[i] = "${_output[0]['label']}";   
-    
+    _loading = false;
+    out[i] = "${_output[0]['label']}";
   }
 
   loadModel() async {
@@ -379,47 +372,248 @@ class _MyAppState extends State<MyApp> {
   // *************** Feedbacking ************** //
 
   //use recPose for PoseEstimation
-  
 
+  // ****** 2D Calculation ****** //
+  double calc2(double x1, double x2) {
+    return ((x2 - x1) * (x2 - x1));
+  }
 
-  Widget? get _selectedTab => _selectedTabIndex == 0
-      ? _cameraDetectionView
-      : null;
+  double slope(x1, y1, x2, y2) {
+    double X = x2 - x1;
+    double Y = y2 - y1;
+    double resultXY = Y / X;
+
+    return resultXY;
+  }
+
+  double anglecomputation(x1, y1, x2, y2, x3, y3) {
+    double angle =
+        math.degrees(atan2(y3 - y2, x3 - x2) - atan2(y1 - y2, x1 - x2));
+    if (angle < 0) {
+      angle += 180;
+    }
+    return angle;
+  }
+
+  double distance2d(x1, y1, x2, y2) {
+    return sqrt(calc2(x1, x2) + calc2(y1, y2));
+  }
+
+  List<double> lmPosition(Pose? pose, int i) {
+    return [
+      pose!.landmarks[i].position.x,
+      pose.landmarks[i].position.y,
+      pose.landmarks[i].position.z
+    ];
+  }
+
+  int counter = 0;
+  String result_feedback = "";
+  bool flatfeet = false;
+  bool head = false;
+  bool torso = false;
+  bool kneecaving = false;
+  bool depth = false;
+  List<bool> check = [false, false, false, false, false];
+
+  void checkError(Pose? pose) {
+    result_feedback = "";
+
+    flatfeet = (flatfeet || checkFlatFoot(pose));
+    head = (head || checkHeadAlignment(pose));
+    torso = (torso || checkTorsoAngle(pose));
+
+    if (counter > 0 && counter < 4) {
+      kneecaving = (kneecaving || kneeCaveIn(pose));
+      depth = (depth || depths(pose));
+      if (counter == 3) {
+        textCheck(flatfeet, head, torso, kneecaving, depth);
+      }
+    }
+
+    counter++;
+
+    if (counter > 3) {
+      counter = 0;
+      check = [false, false, false, false, false];
+      flatfeet = false;
+      head = false;
+      torso = false;
+      kneecaving = false;
+      depth = false;
+    }
+  }
+
+  String textCheck(bool foot, bool head, bool torso, bool knee, bool _depth) {
+    foot
+        ? result_feedback += "Make sure your feet is flat on the floor! \n"
+        : null;
+    head
+        ? result_feedback += "Avoid facing down. Instead, face forward! \n"
+        : null;
+    torso ? result_feedback += "Bring your torso upright! \n" : null;
+    knee
+        ? result_feedback +=
+            "Avoid caving your knees!. Point your knees outward! \n"
+        : null;
+    _depth ? result_feedback += "Lower your squat." : null;
+
+    return result_feedback;
+  }
+
+  var distanceknee = {};
+  var distancetoe = {};
+  var deptharr = {};
+  var torsoarr = {};
+  bool checkHeadAlignment(Pose? pose) {
+    var nose = lmPosition(pose, 18);
+    var leftear = lmPosition(pose, 2);
+    var headAllignment = slope(nose[0], nose[1], leftear[0], leftear[1]);
+
+    headAllignment = double.parse(headAllignment.toStringAsFixed(3));
+    if ((counter == 0 && headAllignment >= -0.04) ||
+        (counter == 1 && headAllignment >= -0.04) ||
+        (counter == 2 && headAllignment >= -0.13) ||
+        (counter == 3 && headAllignment >= -0.1)) {
+      check[0] = true;
+    }
+    return check[0];
+  }
+
+  bool checkFlatFoot(Pose? pose) {
+    var rightHeel = lmPosition(pose, 25);
+    var rightToe = lmPosition(pose, 32);
+    var rfeet = slope(rightHeel[0], rightHeel[1], rightToe[0], rightToe[1]);
+    rfeet = double.parse(rfeet.toStringAsFixed(3));
+
+    var leftHeel = lmPosition(pose, 7);
+    var leftToe = lmPosition(pose, 14);
+    var lfeet = slope(leftHeel[0], leftHeel[1], leftToe[0], leftToe[1]);
+    lfeet = double.parse(lfeet.toStringAsFixed(3));
+
+    if (counter == 0 && lfeet < -0.8 || rfeet < -1.4) {
+      check[1] = true;
+    }
+
+    return check[1];
+  }
+
+  bool checkTorsoAngle(Pose? pose) {
+    var leftShoulder = lmPosition(pose, 12);
+    var leftHip = lmPosition(pose, 8);
+    var leftKnee = lmPosition(pose, 10);
+    var torsoAngle = anglecomputation(leftKnee[0], leftKnee[1], leftHip[0],
+        leftHip[1], leftShoulder[0], leftShoulder[1]);
+
+    torsoAngle = double.parse(torsoAngle.toStringAsFixed(0));
+    if (counter == 0) {
+      torsoarr[0] = torsoAngle;
+    }
+    if (counter == 1) {
+      torsoarr[1] = torsoAngle;
+    }
+    if (counter == 2) {
+      torsoarr[2] = torsoAngle;
+      var restorso = torsoarr[0] - torsoarr[1];
+      var restorso2 = torsoarr[1] - torsoarr[2];
+      if (restorso.abs() < 5 && (restorso2.abs() > 3 || restorso2.abs() == 0)) {
+        check[2] = true;
+      }
+    }
+    return check[2];
+  }
+
+  bool kneeCaveIn(Pose? pose) {
+    var leftKnee = lmPosition(pose, 10);
+    var rightKnee = lmPosition(pose, 28);
+    var disKnee =
+        distance2d(rightKnee[0], rightKnee[1], leftKnee[0], leftKnee[1]);
+    disKnee = double.parse(disKnee.toStringAsFixed(3));
+
+    var lefttoe = lmPosition(pose, 14);
+    var righttoe = lmPosition(pose, 32);
+    var distoe =
+        distance2d(righttoe[0], rightKnee[1] - 1, lefttoe[0], leftKnee[1] - 1);
+    distoe = double.parse(distoe.toStringAsFixed(3));
+
+    if (counter == 1) {
+      distanceknee[0] = disKnee;
+      distancetoe[0] = distoe;
+    }
+    if (counter == 2) {
+      distanceknee[1] = disKnee;
+      distancetoe[1] = distoe;
+      var disres = distanceknee[1] - distancetoe[1];
+      if (distanceknee[0] < distancetoe[0] &&
+          distanceknee[1] < distancetoe[1] &&
+          disres < 0.3) {
+        check[3] = true;
+      }
+    }
+    return check[3];
+  }
+
+  bool depths(Pose? pose) {
+    var leftAnkle = lmPosition(pose, 1);
+    var leftHip = lmPosition(pose, 8);
+    var leftKnee = lmPosition(pose, 10);
+
+    var depth = anglecomputation(leftAnkle[0], leftAnkle[1], leftKnee[0],
+        leftKnee[1], leftHip[0], leftHip[1]);
+    depth = double.parse(depth.toStringAsFixed(3));
+    if (counter == 1) {
+      deptharr[0] = depth;
+    }
+    if (counter == 2) {
+      deptharr[1] = depth;
+    }
+    if (counter == 3) {
+      deptharr[2] = depth;
+      var resdepth0 = deptharr[0] - deptharr[1];
+      var resdepth1 = deptharr[1] - deptharr[2];
+      var resdepthminus = resdepth0.abs() - resdepth1.abs();
+      if (resdepthminus < 4 && resdepthminus != 0 && resdepth0 < 6) {
+        check[4] = true;
+      }
+    }
+    return check[4];
+  }
+
+  Widget? get _selectedTab =>
+      _selectedTabIndex == 0 ? _cameraDetectionView : null;
 
   Widget get _cameraDetectionView => SingleChildScrollView(
-    child: Center(
-      child: Column(
-        children: [
-          ClipRect(                  
-              child: CustomPaint(
-                child: _cameraImage,
-                foregroundPainter: PosePainter(
-                  pose: _detectedPose,
-                  imageSize: _imageSize,
+        child: Center(
+          child: Column(
+            children: [
+              ClipRect(
+                child: CustomPaint(
+                  child: _cameraImage,
+                  foregroundPainter: PosePainter(
+                    pose: _detectedPose,
+                    imageSize: _imageSize,
+                  ),
                 ),
               ),
-            ),
-          OutlinedButton(
-            onPressed: _toggleDetectPose,
-            child: _isDetectingPose
-                ? const Text('Turn off pose detection')
-                : const Text('Turn on pose detection'),
+              OutlinedButton(
+                onPressed: _toggleDetectPose,
+                child: _isDetectingPose
+                    ? const Text('Turn off pose detection')
+                    : const Text('Turn on pose detection'),
+              ),
+              Center(
+                child: Text(squatPrompt),
+              ),
+              Text(out[0]),
+              Text(out[1]),
+              Text(out[2]),
+              Text(out[3]),
+              Center(child: Text(pass)),
+              Text(result_feedback),
+            ],
           ),
-          
-          Center(
-            child: Text(squatPrompt),
-          ),
-          Text(out[0]),
-          Text(out[1]),
-          Text(out[2]),
-          Text(out[3]),
-          Center(
-            child: Text(pass)
-          ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -431,7 +625,7 @@ class _MyAppState extends State<MyApp> {
         bottomNavigationBar: BottomNavigationBar(
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
-              icon: Icon(Icons.camera), 
+              icon: Icon(Icons.camera),
               label: 'Camera',
             ),
           ],
