@@ -47,7 +47,8 @@ class _MyAppState extends State<MyApp> {
   late Uint8List _image;
   List<Uint8List> segments = [];
   List<Tuple2<Uint8List, double>> recording = [];
-  List<Tuple2<Uint8List, Pose?>> pose_recording = [];
+  List<Tuple2<Uint8List, Pose?>> recPose = [];
+  List<Pose?> segPose = [];
   Uint8List list = Uint8List.fromList([0, 2, 5, 7, 42, 255]);
   // late List<Pose> recPose;
 
@@ -225,7 +226,7 @@ class _MyAppState extends State<MyApp> {
             record(currLm);
 
             segments.add(recording[(recording.length) - 1].item1); //top_2
-            checkError(pose_recording[(pose_recording.length) - 1].item2);
+            segPose.add(recPose[(recPose.length) - 1].item2);
             ctr++;
 
             squatPrompt = "Recording Done";
@@ -244,17 +245,17 @@ class _MyAppState extends State<MyApp> {
 
   // ~ Saves the Image, Pose Estimation and lm(y-coordinate of shoulder)
   void record(double lm) {
+    Tuple2<Uint8List, Pose?> forpose = Tuple2(list, _detectedPose);
+    recPose.add(forpose);
     // recPose.add(_detectedPose!);
     Tuple2<Uint8List, double> tmp = Tuple2(_image, lm);
     recording.add(tmp);
-    Tuple2<Uint8List, Pose?> tmp_pose = Tuple2(list, _detectedPose);
-    pose_recording.add(tmp_pose);
   }
 
   // ~ Segmentizes the recorded squat and saves it in the list 'segments'
   bool saveSegments() {
     segments.add(recording[0].item1); // top_1
-    checkError(pose_recording[0].item2);
+    segPose.add(recPose[0].item2);
 
     double prevFrameYval = recording[0].item2; //Top_1 y-coordinate
     int changeIdx = 0;
@@ -279,10 +280,10 @@ class _MyAppState extends State<MyApp> {
       }
     }
     segments.add(recording[((changeIdx + changeIdxBot) ~/ 2.0)].item1);
-    checkError(pose_recording[((changeIdx + changeIdxBot) ~/ 2.0)].item2);
+    segPose.add(recPose[((changeIdx + changeIdxBot) ~/ 2.0)].item2);
     ctr++;
     segments.add(recording[(recording.length) - 2].item1); // bot_1
-    checkError(pose_recording[(pose_recording.length) - 2].item2);
+    segPose.add(recPose[(recPose.length) - 2].item2);
     ctr++;
 
     return true;
@@ -294,11 +295,15 @@ class _MyAppState extends State<MyApp> {
   void predictImages() async {
     for (int i = 0; i <= 3; i++) {
       await recognizeImageBinary(segments[i], i);
+      if (out[i][0] == 'i') {
+        Feedbacking(segPose[i]);
+      }
     }
 
+    segPose.clear();
+    recPose.clear();
     segments.clear();
     recording.clear();
-    pose_recording.clear();
   }
 
   //loads the model
@@ -407,8 +412,12 @@ class _MyAppState extends State<MyApp> {
     ];
   }
 
+  // segment counter
   int counter = 0;
+  // result error
   String result_feedback = "";
+
+  //checker
   bool flatfeet = false;
   bool head = false;
   bool torso = false;
@@ -416,7 +425,7 @@ class _MyAppState extends State<MyApp> {
   bool depth = false;
   List<bool> check = [false, false, false, false, false];
 
-  void checkError(Pose? pose) {
+  void Feedbacking(Pose? pose) {
     result_feedback = "";
 
     flatfeet = (flatfeet || checkFlatFoot(pose));
@@ -444,6 +453,7 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
+// function for printing errors in the body movement
   String textCheck(bool foot, bool head, bool torso, bool knee, bool _depth) {
     foot
         ? result_feedback += "Make sure your feet is flat on the floor! \n"
@@ -480,6 +490,7 @@ class _MyAppState extends State<MyApp> {
     return check[0];
   }
 
+//
   bool checkFlatFoot(Pose? pose) {
     var rightHeel = lmPosition(pose, 25);
     var rightToe = lmPosition(pose, 32);
