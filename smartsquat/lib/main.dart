@@ -13,6 +13,7 @@ import 'package:body_detection/models/image_result.dart';
 import 'package:body_detection/models/pose.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
+import 'package:flutter_tts/flutter_tts.dart';
 
 import 'pose_painter.dart';
 
@@ -29,6 +30,8 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   GlobalKey globalKey = GlobalKey();
+
+  FlutterTts flutterTts = FlutterTts();
 
   int _selectedTabIndex = 0;
 
@@ -165,10 +168,11 @@ class _MyAppState extends State<MyApp> {
 
   int ctr = 0;
   String land = "";
+  int nspeech = 0;
 
   // *********** Segmentation Functions   ****************** //
 
-  void segmentation() {
+  Future<void> segmentation() async {
     for (PoseLandmark lm in _detectedPose!.landmarks) {
       int id = lm.type.index;
       if (id == 12) {
@@ -188,6 +192,10 @@ class _MyAppState extends State<MyApp> {
         if (currTime >= (initialTime + 2)) {
           isRecording = true;
           squatPrompt = "Recording, Please Squat now";
+          if (nspeech == 0) {
+            await speechnow("You may squat now");
+            nspeech = 1;
+          }
         }
       }
 
@@ -229,8 +237,11 @@ class _MyAppState extends State<MyApp> {
             segPose.add(recPose[(recPose.length) - 1].item2);
             ctr++;
 
+            // _toggleDetectPose();
+            await speechnow("Please wait for evaluation");
             squatPrompt = "Recording Done";
             predictImages();
+            nspeech = 0;
             isRecording = false;
             isTimed = false;
             initialTime = (DateTime.now().millisecondsSinceEpoch / 1000);
@@ -297,6 +308,7 @@ class _MyAppState extends State<MyApp> {
       await recognizeImageBinary(segments[i], i);
       if (out[i][0] == 'i') {
         Feedbacking(segPose[i]);
+        speechnow(result_feedback);
       }
     }
 
@@ -374,6 +386,21 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
+  // *************** text to speech ************* //
+  // bool tospeech() {
+  //   bool textcheck = false;
+  //   if (!result_feedback.isEmpty) {
+  //     textcheck = true;
+  //   }
+  //   return textcheck;
+  // }
+
+  speechnow(String str_speech) async {
+    await flutterTts.setLanguage("en-US");
+    await flutterTts.setPitch(1);
+    await flutterTts.speak(str_speech);
+  }
+
   // *************** Feedbacking ************** //
 
   //use recPose for PoseEstimation
@@ -437,6 +464,9 @@ class _MyAppState extends State<MyApp> {
       depth = (depth || depths(pose));
       if (counter == 3) {
         textCheck(flatfeet, head, torso, kneecaving, depth);
+        if (!result_feedback.isEmpty == "") {
+          result_feedback = "You have a correct form";
+        }
       }
     }
 
@@ -475,16 +505,16 @@ class _MyAppState extends State<MyApp> {
   var distancetoe = {};
   var deptharr = {};
   var torsoarr = {};
+  var headarr = {};
   bool checkHeadAlignment(Pose? pose) {
     var nose = lmPosition(pose, 18);
     var leftear = lmPosition(pose, 2);
     var headAllignment = slope(nose[0], nose[1], leftear[0], leftear[1]);
 
     headAllignment = double.parse(headAllignment.toStringAsFixed(3));
-    if ((counter == 0 && headAllignment >= -0.04) ||
-        (counter == 1 && headAllignment >= -0.04) ||
-        (counter == 2 && headAllignment >= -0.13) ||
-        (counter == 3 && headAllignment >= -0.1)) {
+
+    headarr[counter] = headAllignment;
+    if (counter == 2 && headarr[1] > headarr[0] && headarr[2] > headarr[1]) {
       check[0] = true;
     }
     return check[0];
@@ -539,13 +569,13 @@ class _MyAppState extends State<MyApp> {
     var rightKnee = lmPosition(pose, 28);
     var disKnee =
         distance2d(rightKnee[0], rightKnee[1], leftKnee[0], leftKnee[1]);
-    disKnee = double.parse(disKnee.toStringAsFixed(3));
+    disKnee = double.parse(disKnee.toStringAsFixed(0));
 
     var lefttoe = lmPosition(pose, 14);
     var righttoe = lmPosition(pose, 32);
     var distoe =
         distance2d(righttoe[0], rightKnee[1] - 1, lefttoe[0], leftKnee[1] - 1);
-    distoe = double.parse(distoe.toStringAsFixed(3));
+    distoe = double.parse(distoe.toStringAsFixed(0));
 
     if (counter == 1) {
       distanceknee[0] = disKnee;
@@ -554,10 +584,10 @@ class _MyAppState extends State<MyApp> {
     if (counter == 2) {
       distanceknee[1] = disKnee;
       distancetoe[1] = distoe;
-      var disres = distanceknee[1] - distancetoe[1];
-      if (distanceknee[0] < distancetoe[0] &&
-          distanceknee[1] < distancetoe[1] &&
-          disres < 0.3) {
+      var disresmid = distanceknee[0] - distancetoe[0];
+      var disresbot = distanceknee[1] - distancetoe[1];
+      var disres = disresmid + disresbot;
+      if (disres < 0) {
         check[3] = true;
       }
     }
@@ -572,20 +602,8 @@ class _MyAppState extends State<MyApp> {
     var depth = anglecomputation(leftAnkle[0], leftAnkle[1], leftKnee[0],
         leftKnee[1], leftHip[0], leftHip[1]);
     depth = double.parse(depth.toStringAsFixed(3));
-    if (counter == 1) {
-      deptharr[0] = depth;
-    }
-    if (counter == 2) {
-      deptharr[1] = depth;
-    }
-    if (counter == 3) {
-      deptharr[2] = depth;
-      var resdepth0 = deptharr[0] - deptharr[1];
-      var resdepth1 = deptharr[1] - deptharr[2];
-      var resdepthminus = resdepth0.abs() - resdepth1.abs();
-      if (resdepthminus < 4 && resdepthminus != 0 && resdepth0 < 6) {
-        check[4] = true;
-      }
+    if (counter == 2 && (leftKnee[1] - leftHip[1]) <= 18) {
+      check[4] = true;
     }
     return check[4];
   }
@@ -631,13 +649,13 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Smart Squat v2'),
+          title: const Text('Smart Squat'),
         ),
         bottomNavigationBar: BottomNavigationBar(
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
               icon: Icon(Icons.camera),
-              label: 'Camera',
+              label: 'Start Camera',
             ),
           ],
           onTap: _onTabSelectTapped,
