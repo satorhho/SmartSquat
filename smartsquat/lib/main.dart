@@ -166,13 +166,14 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  int ctr = 0;
-  String land = "";
   int nspeech = 0;
 
   // *********** Segmentation Functions   ****************** //
 
   Future<void> segmentation() async {
+    if (!_isDetectingPose) {
+      isTimed = false;
+    }
     for (PoseLandmark lm in _detectedPose!.landmarks) {
       int id = lm.type.index;
       if (id == 12) {
@@ -189,7 +190,7 @@ class _MyAppState extends State<MyApp> {
         }
       } else if (isTimed) {
         double currTime = (DateTime.now().millisecondsSinceEpoch / 1000);
-        if (currTime >= (initialTime + 2)) {
+        if (currTime >= (initialTime + 3)) {
           isRecording = true;
           squatPrompt = "Recording, Please Squat now";
           if (nspeech == 0) {
@@ -235,17 +236,17 @@ class _MyAppState extends State<MyApp> {
 
             segments.add(recording[(recording.length) - 1].item1); //top_2
             segPose.add(recPose[(recPose.length) - 1].item2);
-            ctr++;
 
             // _toggleDetectPose();
-            await speechnow("Please wait for evaluation");
-            squatPrompt = "Recording Done";
-            predictImages();
-            nspeech = 0;
             isRecording = false;
             isTimed = false;
             initialTime = (DateTime.now().millisecondsSinceEpoch / 1000);
+            // currTime = (DateTime.now().millisecondsSinceEpoch / 1000);
             monitorVal = 0.01;
+            await speechnow("Please wait for evaluation");
+            await predictImages();
+            squatPrompt = "Finish Predicting";
+            nspeech = 0;
           }
         }
       }
@@ -292,10 +293,9 @@ class _MyAppState extends State<MyApp> {
     }
     segments.add(recording[((changeIdx + changeIdxBot) ~/ 2.0)].item1);
     segPose.add(recPose[((changeIdx + changeIdxBot) ~/ 2.0)].item2);
-    ctr++;
+
     segments.add(recording[(recording.length) - 2].item1); // bot_1
     segPose.add(recPose[(recPose.length) - 2].item2);
-    ctr++;
 
     return true;
   }
@@ -303,7 +303,7 @@ class _MyAppState extends State<MyApp> {
 // **************  CNN Model  ******************* //
 
   // Runs model on each of the segments
-  void predictImages() async {
+  Future predictImages() async {
     for (int i = 0; i <= 3; i++) {
       await recognizeImageBinary(segments[i], i);
       if (out[i][0] == 'i') {
@@ -354,31 +354,32 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     //initState is the first function that is executed by default when this class is called
     super.initState();
-    loadModel().then((value) {
+    loadModel().then((val) {
       setState(() {});
     });
   }
 
-  @override
-  void dispose() {
-    //dispose function disposes and clears our memory
-    super.dispose();
+  // @override
+  // void dispose() {
+  //   //dispose function disposes and clears our memory
+  //   super.dispose();
+  //   Tflite.close();
+  // }
+
+  // classifyImage(File image, int i) async {
+  //   pass = "Classify Image";
+  //   //this function runs the model on the image
+  //   _output = (await Tflite.runModelOnImage(
+  //     path: image.path,
+  //     numResults: 8,
+  //   ))!;
+
+  //   _loading = false;
+  //   out[i] = "${_output[0]['label']}";
+  // }
+
+  Future loadModel() async {
     Tflite.close();
-  }
-
-  classifyImage(File image, int i) async {
-    pass = "Classify Image";
-    //this function runs the model on the image
-    _output = (await Tflite.runModelOnImage(
-      path: image.path,
-      numResults: 8,
-    ))!;
-
-    _loading = false;
-    out[i] = "${_output[0]['label']}";
-  }
-
-  loadModel() async {
     //this function loads our model
     await Tflite.loadModel(
       model: 'assets/smartsquat.tflite',
@@ -387,13 +388,6 @@ class _MyAppState extends State<MyApp> {
   }
 
   // *************** text to speech ************* //
-  // bool tospeech() {
-  //   bool textcheck = false;
-  //   if (!result_feedback.isEmpty) {
-  //     textcheck = true;
-  //   }
-  //   return textcheck;
-  // }
 
   speechnow(String str_speech) async {
     await flutterTts.setLanguage("en-US");
@@ -431,14 +425,6 @@ class _MyAppState extends State<MyApp> {
     return sqrt(calc2(x1, x2) + calc2(y1, y2));
   }
 
-  List<double> lmPosition(Pose? pose, int i) {
-    return [
-      pose!.landmarks[i].position.x,
-      pose.landmarks[i].position.y,
-      pose.landmarks[i].position.z
-    ];
-  }
-
   // segment counter
   int counter = 0;
   // result error
@@ -458,15 +444,15 @@ class _MyAppState extends State<MyApp> {
     flatfeet = (flatfeet || checkFlatFoot(pose));
     head = (head || checkHeadAlignment(pose));
     torso = (torso || checkTorsoAngle(pose));
+    kneecaving = (kneecaving || kneeCaveIn(pose));
 
-    if (counter > 0 && counter < 4) {
-      kneecaving = (kneecaving || kneeCaveIn(pose));
+    if (counter == 2) {
       depth = (depth || depths(pose));
-      if (counter == 3) {
-        textCheck(flatfeet, head, torso, kneecaving, depth);
-        if (!result_feedback.isEmpty == "") {
-          result_feedback = "You have a correct form";
-        }
+    }
+    if (counter == 3) {
+      textCheck(flatfeet, head, torso, kneecaving, depth);
+      if (result_feedback.isEmpty) {
+        result_feedback = "You have a correct squatting form";
       }
     }
 
@@ -501,20 +487,43 @@ class _MyAppState extends State<MyApp> {
     return result_feedback;
   }
 
+  List<double> lmPosition1(Pose? pose, int i) {
+    return [
+      pose!.landmarks[i].position.x,
+      pose.landmarks[i].position.y,
+    ];
+  }
+
+  List<double> lmPosition(Pose? pose, int i) {
+    double x = 0, y = 0;
+    for (PoseLandmark lm in pose!.landmarks) {
+      int id = lm.type.index;
+      if (id == i) {
+        x = double.parse(lm.position.x.toStringAsFixed(3));
+        y = double.parse(lm.position.y.toStringAsFixed(3));
+      }
+    }
+    return [x, y];
+  }
+
   var distanceknee = {};
   var distancetoe = {};
   var deptharr = {};
   var torsoarr = {};
   var headarr = {};
+  // half-check
   bool checkHeadAlignment(Pose? pose) {
-    var nose = lmPosition(pose, 18);
-    var leftear = lmPosition(pose, 2);
+    var nose = lmPosition1(pose, 18);
+    var leftear = lmPosition1(pose, 2);
     var headAllignment = slope(nose[0], nose[1], leftear[0], leftear[1]);
 
     headAllignment = double.parse(headAllignment.toStringAsFixed(3));
 
     headarr[counter] = headAllignment;
-    if (counter == 2 && headarr[1] > headarr[0] && headarr[2] > headarr[1]) {
+    if (counter == 2 && headarr[1] < headarr[2]) {
+      check[0] = true;
+    }
+    if (counter == 3 && headarr[1] == headarr[2] && headarr[2] == headarr[3]) {
       check[0] = true;
     }
     return check[0];
@@ -564,6 +573,7 @@ class _MyAppState extends State<MyApp> {
     return check[2];
   }
 
+  // check
   bool kneeCaveIn(Pose? pose) {
     var leftKnee = lmPosition(pose, 10);
     var rightKnee = lmPosition(pose, 28);
@@ -577,23 +587,16 @@ class _MyAppState extends State<MyApp> {
         distance2d(righttoe[0], rightKnee[1] - 1, lefttoe[0], leftKnee[1] - 1);
     distoe = double.parse(distoe.toStringAsFixed(0));
 
-    if (counter == 1) {
-      distanceknee[0] = disKnee;
-      distancetoe[0] = distoe;
-    }
-    if (counter == 2) {
-      distanceknee[1] = disKnee;
-      distancetoe[1] = distoe;
-      var disresmid = distanceknee[0] - distancetoe[0];
-      var disresbot = distanceknee[1] - distancetoe[1];
-      var disres = disresmid + disresbot;
-      if (disres < 0) {
-        check[3] = true;
-      }
+    distanceknee[counter] = disKnee;
+    distancetoe[counter] = distoe;
+
+    if (counter == 2 && distanceknee[0] < distanceknee[1]) {
+      check[3] = true;
     }
     return check[3];
   }
 
+  // check
   bool depths(Pose? pose) {
     var leftAnkle = lmPosition(pose, 1);
     var leftHip = lmPosition(pose, 8);
@@ -602,8 +605,11 @@ class _MyAppState extends State<MyApp> {
     var depth = anglecomputation(leftAnkle[0], leftAnkle[1], leftKnee[0],
         leftKnee[1], leftHip[0], leftHip[1]);
     depth = double.parse(depth.toStringAsFixed(3));
-    if (counter == 2 && (leftKnee[1] - leftHip[1]) <= 18) {
-      check[4] = true;
+
+    if (counter == 2) {
+      if (leftHip[1] < leftKnee[1]) {
+        check[4] = true;
+      }
     }
     return check[4];
   }
