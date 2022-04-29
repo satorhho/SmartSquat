@@ -403,6 +403,7 @@ class _MyAppState extends State<MyApp> {
   // }
 
   Future loadModel() async {
+    Tflite.close();
     //this function loads our model
     await Tflite.loadModel(
       model: 'assets/smartsquat.tflite',
@@ -541,7 +542,7 @@ class _MyAppState extends State<MyApp> {
   bool checkTorsoAngle(Pose? top1, Pose? pose) {
     var top1_leftShoulder = lmPosition(top1, 12);
     var leftShoulder = lmPosition(pose, 12);
-    var minus_shoulder = top1_leftShoulder[1] - leftShoulder[1];
+    var minus_shoulder = top1_leftShoulder[0] - leftShoulder[0];
     if (minus_shoulder.abs() >= 19) {
       check[2] = true;
     }
