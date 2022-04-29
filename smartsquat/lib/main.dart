@@ -62,6 +62,7 @@ class _MyAppState extends State<MyApp> {
 
   // ~ Timer
   double initialTime = (DateTime.now().millisecondsSinceEpoch / 1000);
+  double initialTime2 = (DateTime.now().millisecondsSinceEpoch / 1000);
   double initLmPos = 0.01;
   double initYpos = 0;
   double tmpLmVal = 0.1;
@@ -176,85 +177,86 @@ class _MyAppState extends State<MyApp> {
   // *********** Segmentation Functions   ****************** //
 
   Future<void> segmentation() async {
-    if (!_isDetectingPose) {
-      isTimed = false;
-    }
-    for (PoseLandmark lm in _detectedPose!.landmarks) {
-      int id = lm.type.index;
-      if (id == 12) {
-        tmpLmVal = double.parse(
-            lm.position.x.toStringAsFixed(1)); //if shoulder, take x val
-      }
-
-      // Left shoulder is timed for 2 seconds, if landmark is within range of previous frame, start
-
-      if (isTimed == false) {
-        initialTime = (DateTime.now().millisecondsSinceEpoch / 1000);
+    double currTime = (DateTime.now().millisecondsSinceEpoch / 1000);
+    if (currTime >= initialTime2) {
+      for (PoseLandmark lm in _detectedPose!.landmarks) {
+        int id = lm.type.index;
         if (id == 12) {
-          initLmPos = double.parse(lm.position.x.toStringAsFixed(1));
+          tmpLmVal = double.parse(
+              lm.position.x.toStringAsFixed(1)); //if shoulder, take x val
         }
-      } else if (isTimed) {
-        double currTime = (DateTime.now().millisecondsSinceEpoch / 1000);
-        if (currTime >= (initialTime + 3)) {
-          isRecording = true;
-          squatPrompt = "Recording, Please Squat now";
-          if (nspeech == 0) {
-            await speechnow("You may squat now");
-            nspeech = 1;
+
+        // Left shoulder is timed for 2 seconds, if landmark is within range of previous frame, start
+
+        if (isTimed == false) {
+          initialTime = (DateTime.now().millisecondsSinceEpoch / 1000);
+          if (id == 12) {
+            initLmPos = double.parse(lm.position.x.toStringAsFixed(1));
+          }
+        } else if (isTimed) {
+          currTime = (DateTime.now().millisecondsSinceEpoch / 1000);
+          if (currTime >= (initialTime + 3)) {
+            isRecording = true;
+            squatPrompt = "Recording, Please Squat now";
+            if (nspeech == 0) {
+              await speechnow("You may squat now");
+              nspeech = 1;
+            }
           }
         }
-      }
 
-      if ((tmpLmVal <= (initLmPos + 5)) && (tmpLmVal >= (initLmPos - 5))) {
-        isTimed = true;
-      } else {
-        isTimed = false;
-      }
-
-      //Records the downwards squat of the user
-      if (isRecording) {
-        if (id == 12) {
-          record(lm.position.y);
-
-          recThis = double.parse(lm.position.y.toStringAsFixed(1));
-
-          if (monitorVal - 3 > recThis) {
-            isRecording = false;
-            isTracking = saveSegments();
-            monitorVal = 1000;
-            isTimed = false;
-            initialTime = (DateTime.now().millisecondsSinceEpoch / 1000);
-          }
-          monitorVal = double.parse(lm.position.y.toStringAsFixed(1));
+        if ((tmpLmVal <= (initLmPos + 5)) && (tmpLmVal >= (initLmPos - 5))) {
+          isTimed = true;
+        } else {
+          isTimed = false;
         }
-      }
 
-      // Tracks the user and checks if the squat is now going upward
+        //Records the downwards squat of the user
+        if (isRecording) {
+          if (id == 12) {
+            record(lm.position.y);
 
-      if (isTracking) {
-        if (id == 12) {
-          double currLm = double.parse(lm.position.y.toStringAsFixed(1));
+            recThis = double.parse(lm.position.y.toStringAsFixed(1));
 
-          if (currLm <= recording[0].item2 + 3) {
-            isTracking = false;
-            record(currLm);
+            if (monitorVal - 3 > recThis) {
+              isRecording = false;
+              isTracking = saveSegments();
+              monitorVal = 1000;
+              isTimed = false;
+              initialTime = (DateTime.now().millisecondsSinceEpoch / 1000);
+            }
+            monitorVal = double.parse(lm.position.y.toStringAsFixed(1));
+          }
+        }
 
-            segments.add(recording[(recording.length) - 1].item1); //top_2
-            segPose.add(recPose[(recPose.length) - 1].item2);
+        // Tracks the user and checks if the squat is now going upward
 
-            _toggleDetectPose();
-            squatPrompt = "Predicting";
-            await speechnow("Please wait for evaluation");
-            showscreen();
-            await predictImages();
-            squatPrompt = "Finish Predicting";
-            nspeech = 0;
-            isRecording = false;
-            isTimed = false;
-            initialTime = (DateTime.now().millisecondsSinceEpoch / 1000);
-            // currTime = (DateTime.now().millisecondsSinceEpoch / 1000);
-            monitorVal = 0.01;
-            _toggleDetectPose();
+        if (isTracking) {
+          if (id == 12) {
+            double currLm = double.parse(lm.position.y.toStringAsFixed(1));
+
+            if (currLm <= recording[0].item2 + 3) {
+              isTracking = false;
+              record(currLm);
+
+              segments.add(recording[(recording.length) - 1].item1); //top_2
+              segPose.add(recPose[(recPose.length) - 1].item2);
+
+              _toggleDetectPose();
+              squatPrompt = "Predicting";
+              await speechnow("Please wait for evaluation");
+              showscreen();
+              await predictImages();
+              squatPrompt = "Finish Predicting";
+              nspeech = 0;
+              isRecording = false;
+              isTimed = false;
+              initialTime = (DateTime.now().millisecondsSinceEpoch / 1000);
+              initialTime2 = (DateTime.now().millisecondsSinceEpoch / 1000) + 5;
+              // currTime = (DateTime.now().millisecondsSinceEpoch / 1000);
+              monitorVal = 0.01;
+              _toggleDetectPose();
+            }
           }
         }
       }
@@ -388,6 +390,18 @@ class _MyAppState extends State<MyApp> {
     Tflite.close();
   }
 
+  // classifyImage(File image, int i) async {
+  //   pass = "Classify Image";
+  //   //this function runs the model on the image
+  //   _output = (await Tflite.runModelOnImage(
+  //     path: image.path,
+  //     numResults: 8,
+  //   ))!;
+
+  //   _loading = false;
+  //   out[i] = "${_output[0]['label']}";
+  // }
+
   Future loadModel() async {
     Tflite.close();
     //this function loads our model
@@ -444,7 +458,9 @@ class _MyAppState extends State<MyApp> {
     for (int i = 0; i <= 3; i++) {
       if (prediction_out[i] != correct_output[i]) {
         head = (head || checkHeadAlignment(pose[i]));
-        torso = (torso || checkTorsoAngle(pose[i]));
+        if (i >= 1 && i <= 3) {
+          torso = (torso || checkTorsoAngle(pose[0], pose[i]));
+        }
         if (i == 0 || i == 2) {
           flatfeet = (flatfeet || checkFlatFoot(pose[i], pose[i + 1]));
           if (i == 2) {
@@ -459,7 +475,7 @@ class _MyAppState extends State<MyApp> {
     result_feedback = "";
     textCheck(flatfeet, head, torso, kneecaving, depth);
     if (result_feedback.isEmpty) {
-      result_feedback = "You have a correct squatting form";
+      result_feedback = "You have a correct posture";
     }
     await speechnow(result_feedback);
     check = [false, false, false, false, false];
@@ -495,16 +511,12 @@ class _MyAppState extends State<MyApp> {
     return [x, y];
   }
 
-  var distanceknee = {};
-  var distancetoe = {};
-  var deptharr = {};
-  var torsoarr = {};
   // half-check
   bool checkHeadAlignment(Pose? pose) {
     var righteyeouter = lmPosition(pose, 24);
     var rightear = lmPosition(pose, 20);
 
-    if (rightear[1] > righteyeouter[1]) {
+    if (righteyeouter[1] > rightear[1]) {
       check[0] = true;
     }
     return check[0];
@@ -527,28 +539,13 @@ class _MyAppState extends State<MyApp> {
     return check[1];
   }
 
-  bool checkTorsoAngle(Pose? pose) {
+  bool checkTorsoAngle(Pose? top1, Pose? pose) {
+    var top1_leftShoulder = lmPosition(top1, 12);
     var leftShoulder = lmPosition(pose, 12);
-    var leftHip = lmPosition(pose, 8);
-    var leftKnee = lmPosition(pose, 10);
-    var torsoAngle = anglecomputation(leftKnee[0], leftKnee[1], leftHip[0],
-        leftHip[1], leftShoulder[0], leftShoulder[1]);
-
-    torsoAngle = double.parse(torsoAngle.toStringAsFixed(0));
-    // if (counter == 0) {
-    //   torsoarr[0] = torsoAngle;
-    // }
-    // if (counter == 1) {
-    //   torsoarr[1] = torsoAngle;
-    // }
-    // if (counter == 2) {
-    //   torsoarr[2] = torsoAngle;
-    //   var restorso = torsoarr[0] - torsoarr[1];
-    //   var restorso2 = torsoarr[1] - torsoarr[2];
-    //   if (restorso.abs() < 5 && (restorso2.abs() > 3 || restorso2.abs() == 0)) {
-    //     check[2] = true;
-    //   }
-    // }
+    var minus_shoulder = top1_leftShoulder[1] - leftShoulder[1];
+    if (minus_shoulder.abs() >= 19) {
+      check[2] = true;
+    }
     return check[2];
   }
 
@@ -621,12 +618,16 @@ class _MyAppState extends State<MyApp> {
                 : Column(
                     children: [
                       ClipRect(
-                          child: Image.asset(
-                        'assets/images/squating.gif',
-                        fit: BoxFit.fill,
-                        height: 500,
-                        alignment: Alignment.center,
-                      ))
+                        child: Image.asset(
+                          'assets/images/squating1.gif',
+                          fit: BoxFit.fill,
+                          height: 500,
+                          alignment: Alignment.center,
+                        ),
+                      ),
+                      Center(
+                        child: Text("PREDICTING . . ."),
+                      ),
                     ],
                   )),
       );
