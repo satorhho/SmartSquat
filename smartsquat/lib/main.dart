@@ -195,12 +195,15 @@ class _MyAppState extends State<MyApp> {
           }
         } else if (isTimed) {
           currTime = (DateTime.now().millisecondsSinceEpoch / 1000);
-          if (currTime >= (initialTime + 3)) {
-            isRecording = true;
-            squatPrompt = "Recording, Please Squat now";
-            if (nspeech == 0) {
-              await speechnow("You may squat now");
-              nspeech = 1;
+          if (currTime >= (initialTime2 + 2)) {
+            currTime = (DateTime.now().millisecondsSinceEpoch / 1000);
+            if (currTime >= (initialTime + 3)) {
+              isRecording = true;
+              squatPrompt = "Recording, Please Squat now";
+              if (nspeech == 0) {
+                await speechnow("You may squat now");
+                nspeech = 1;
+              }
             }
           }
         }
@@ -478,6 +481,7 @@ class _MyAppState extends State<MyApp> {
       result_feedback = "You have a correct posture";
     }
     await speechnow(result_feedback);
+    result_feedback = "";
     check = [false, false, false, false, false];
   }
 
@@ -543,7 +547,7 @@ class _MyAppState extends State<MyApp> {
     var top1_leftShoulder = lmPosition(top1, 12);
     var leftShoulder = lmPosition(pose, 12);
     var minus_shoulder = top1_leftShoulder[0] - leftShoulder[0];
-    if (minus_shoulder.abs() >= 19) {
+    if (minus_shoulder.abs() > 20) {
       check[2] = true;
     }
     return check[2];
@@ -571,15 +575,10 @@ class _MyAppState extends State<MyApp> {
 
   // check
   bool depths(Pose? pose) {
-    var leftAnkle = lmPosition(pose, 1);
-    var leftHip = lmPosition(pose, 8);
-    var leftKnee = lmPosition(pose, 10);
+    var rightKnee = lmPosition(pose, 28);
+    var rightHip = lmPosition(pose, 26);
 
-    var depth = anglecomputation(leftAnkle[0], leftAnkle[1], leftKnee[0],
-        leftKnee[1], leftHip[0], leftHip[1]);
-    depth = double.parse(depth.toStringAsFixed(3));
-
-    if (leftHip[1] < leftKnee[1]) {
+    if (rightHip[1] < rightKnee[1]) {
       check[4] = true;
     }
     return check[4];
