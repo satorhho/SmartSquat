@@ -403,7 +403,6 @@ class _MyAppState extends State<MyApp> {
   // }
 
   Future loadModel() async {
-    Tflite.close();
     //this function loads our model
     await Tflite.loadModel(
       model: 'assets/smartsquat.tflite',
