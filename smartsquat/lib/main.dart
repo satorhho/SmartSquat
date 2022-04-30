@@ -314,7 +314,7 @@ class _MyAppState extends State<MyApp> {
   }
 
 // **************  CNN Model  ******************* //
-  int endtime = 0;
+  double timepredicting = 0;
 
   // Runs model on each of the segments
   Future predictImages() async {
@@ -323,8 +323,9 @@ class _MyAppState extends State<MyApp> {
       await recognizeImageBinary(segments[i], i);
     }
     await Feedbacking(segPose);
-    endtime = new DateTime.now().millisecondsSinceEpoch;
+    int endtime = new DateTime.now().millisecondsSinceEpoch;
     endtime = endtime - startTime;
+    timepredicting = endtime / 1000;
     prediction_out = ["a", "b", "c", "d"];
 
     segPose.clear();
@@ -481,7 +482,6 @@ class _MyAppState extends State<MyApp> {
       result_feedback = "You have a correct posture";
     }
     await speechnow(result_feedback);
-    result_feedback = "";
     check = [false, false, false, false, false];
   }
 
@@ -611,7 +611,7 @@ class _MyAppState extends State<MyApp> {
                         child: Text(squatPrompt),
                       ),
                       Text(result_feedback),
-                      Text("time: " + endtime.toString() + "ms"),
+                      Text("time: " + timepredicting.toString() + "s"),
                     ],
                   )
                 : Column(
