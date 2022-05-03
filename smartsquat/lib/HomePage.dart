@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import 'instructions.dart';
+import 'about.dart';
 import 'posecamera.dart';
 
 class HomePage extends StatelessWidget {
@@ -35,7 +35,7 @@ class HomePage extends StatelessWidget {
               },
             ),
             OutlineButton(
-              child: Text("Instruction"),
+              child: Text("About"),
               highlightColor: Colors.white38,
               onPressed: () {
                 Navigator.push(

@@ -77,8 +77,6 @@ class _PosecameraState extends State<Posecamera> {
   Future<void> _startCameraStream() async {
     final request = await Permission.camera.request();
     if (request.isGranted) {
-      // final request2 = await Permission.storage.request();
-      // if (request2.isGranted) {
       await BodyDetection.startCameraStream(
         onFrameAvailable: _handleCameraImage,
         onPoseAvailable: (pose) {
@@ -193,7 +191,7 @@ class _PosecameraState extends State<Posecamera> {
             currTime = (DateTime.now().millisecondsSinceEpoch / 1000);
             if (currTime >= (initialTime + 3)) {
               isRecording = true;
-              squatPrompt = "Recording, Please Squat now";
+              squatPrompt = "You may squat now";
               if (nspeech == 0) {
                 await speechnow("You may squat now");
                 nspeech = 1;
@@ -240,11 +238,11 @@ class _PosecameraState extends State<Posecamera> {
               segPose.add(recPose[(recPose.length) - 1].item2);
 
               _toggleDetectPose();
-              squatPrompt = "Predicting";
+              squatPrompt = "Please wait for evaluation";
               await speechnow("Please wait for evaluation");
               showscreen();
               await predictImages();
-              squatPrompt = "Finish Predicting";
+              squatPrompt = "FEEDBACK";
               nspeech = 0;
               isRecording = false;
               isTimed = false;
@@ -598,14 +596,23 @@ class _PosecameraState extends State<Posecamera> {
                       OutlinedButton(
                         onPressed: _toggleDetectPose,
                         child: _isDetectingPose
-                            ? const Text('Turn off pose detection')
-                            : const Text('Turn on pose detection'),
+                            ? const Text('Disable Pose Estimation')
+                            : const Text('Enable Pose Estimation'),
                       ),
                       Center(
-                        child: Text(squatPrompt),
+                        child: Text(
+                          squatPrompt,
+                          style: TextStyle(fontStyle: FontStyle.italic),
+                        ),
                       ),
-                      Text(result_feedback),
-                      Text("time: " + timepredicting.toString() + "s"),
+                      Text(
+                        result_feedback,
+                        textAlign: TextAlign.center,
+                      ),
+                      Text(
+                        "time: " + timepredicting.toString() + "s",
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   )
                 : Column(
@@ -614,12 +621,12 @@ class _PosecameraState extends State<Posecamera> {
                         child: Image.asset(
                           'assets/images/gif-squating.gif',
                           fit: BoxFit.fill,
-                          height: 450,
+                          height: 500,
                           alignment: Alignment.center,
                         ),
                       ),
                       Center(
-                        child: Text("PREDICTING . . ."),
+                        child: Text("Wait For Feedback . . ."),
                       ),
                     ],
                   )),
@@ -634,13 +641,13 @@ class _PosecameraState extends State<Posecamera> {
       ),
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Smart Squat'),
+          title: const Text('SmartSquat'),
         ),
         bottomNavigationBar: BottomNavigationBar(
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
               icon: Icon(Icons.camera),
-              label: 'Start Camera',
+              label: 'Video Capture',
             ),
           ],
           onTap: _onTabSelectTapped,
