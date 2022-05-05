@@ -19,14 +19,20 @@ class HomePage extends StatelessWidget {
                 "${page_title}",
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
+                  fontStyle: FontStyle.italic,
                   fontSize: 35,
                   fontFamily: "Raleway",
                 ),
               ),
             ),
-            OutlineButton(
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                  shape: StadiumBorder(),
+                  minimumSize: Size(180, 40),
+                  primary: Colors.lightBlue,
+                  side: BorderSide(color: Colors.lightBlue)),
+              // highlightColor: Colors.white38,
               child: Text("Start"),
-              highlightColor: Colors.white38,
               onPressed: () {
                 Navigator.push(
                   context,
@@ -34,9 +40,14 @@ class HomePage extends StatelessWidget {
                 );
               },
             ),
-            OutlineButton(
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                  shape: StadiumBorder(),
+                  minimumSize: Size(180, 40),
+                  primary: Colors.lightBlue,
+                  side: BorderSide(color: Colors.lightBlue)),
+              // highlightColor: Colors.white38,
               child: Text("About"),
-              highlightColor: Colors.white38,
               onPressed: () {
                 Navigator.push(
                   context,

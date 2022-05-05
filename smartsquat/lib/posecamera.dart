@@ -456,10 +456,11 @@ class _PosecameraState extends State<Posecamera> {
         head = (head || checkHeadAlignment(pose[i]));
         if (i >= 1 && i <= 3) {
           torso = (torso || checkTorsoAngle(pose[0], pose[i]));
-        }
-        if (i == 0 || i == 2) {
-          flatfeet = (flatfeet || checkFlatFoot(pose[i], pose[i + 1]));
+          if (i == 1) {
+            flatfeet = (flatfeet || checkFlatFoot(pose[0], pose[1]));
+          }
           if (i == 2) {
+            flatfeet = (flatfeet || checkFlatFoot(pose[2], pose[3]));
             depth = (depth || depths(pose[i]));
           }
         }
@@ -594,6 +595,10 @@ class _PosecameraState extends State<Posecamera> {
                         ),
                       ),
                       OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          shape: StadiumBorder(),
+                          primary: Colors.lightBlue,
+                        ),
                         onPressed: _toggleDetectPose,
                         child: _isDetectingPose
                             ? const Text('Disable Pose Estimation')
