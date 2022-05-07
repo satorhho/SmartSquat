@@ -5,5 +5,4 @@ https://pub.dev/packages/body_detection
 https://github.com/0x48lab/flutter_body_detection/tree/main/example/lib
 
 ## To apk
-Before making it an apk run "flutter pub get" in the cmd.
-Then run input "flutter build apk" for making it an apk
+Before making it an apk input "flutter pub get" in the cmd. Then input "flutter build apk" for making it an apk
