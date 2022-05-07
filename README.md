@@ -5,5 +5,6 @@ https://pub.dev/packages/body_detection
 https://github.com/0x48lab/flutter_body_detection/tree/main/example/lib
 
 ## To apk
+Before making it an apk run "flutter pub get"
 In the flutter just run the:
 "flutter build apk"
