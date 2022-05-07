@@ -609,25 +609,28 @@ class _PosecameraState extends State<Posecamera> {
                     ],
                   )
                 : Column(
-                    children: [
-                      Container(
-                        alignment: Alignment.center,
-                        child: Image.asset(
-                          'assets/images/gif-squating.gif',
-                          fit: BoxFit.fill,
-                          width: MediaQuery.of(context).size.width,
-                          height: MediaQuery.of(context).size.height - 180,
+                    children: <Widget>[
+                      Center(
+                        heightFactor: 1.3,
+                        child:Container(
+                          child: Image.asset(
+                            'assets/images/gif-squating.gif',
+                            fit: BoxFit.fill,
+                            width: MediaQuery.of(context).size.width * 0.85,
+                            height: MediaQuery.of(context).size.height * 0.50,
+                            alignment: Alignment.center,
+                          ),
                         ),
                       ),
                       Container(
-                        alignment: Alignment.bottomCenter,
-                        child: Text("Wait For Feedback . . .", 
+                        child: Text("Wait For Feedback . . .", textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.blueGrey,
-                          fontWeight: FontWeight.bold,fontSize: 18.0)
-                        ),
+                          fontWeight: FontWeight.bold,fontSize: 18.0,)
+                          ),
                       ),
                     ],
-                  )),
+                  ),
+                ),
       );
 
   @override

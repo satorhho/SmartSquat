@@ -10,7 +10,7 @@
 
    <application
         android:usesCleartextTraffic="true"
-        android:label="smartsquat"
+        android:label="SmartSquat"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
