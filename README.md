@@ -1,7 +1,4 @@
-# smartsquat flutter-flask
-
-Pose Estimation draft for Smartsquat
-
+# SmartSquat(Mobile App)
 ## Info
 body_detection 0.0.3 is a flutter API used in the app.  Check links for references.
 https://pub.dev/packages/body_detection
