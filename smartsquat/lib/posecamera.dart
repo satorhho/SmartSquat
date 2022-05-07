@@ -386,18 +386,6 @@ class _PosecameraState extends State<Posecamera> {
     Tflite.close();
   }
 
-  // classifyImage(File image, int i) async {
-  //   pass = "Classify Image";
-  //   //this function runs the model on the image
-  //   _output = (await Tflite.runModelOnImage(
-  //     path: image.path,
-  //     numResults: 8,
-  //   ))!;
-
-  //   _loading = false;
-  //   out[i] = "${_output[0]['label']}";
-  // }
-
   Future loadModel() async {
     Tflite.close();
     //this function loads our model
@@ -454,7 +442,7 @@ class _PosecameraState extends State<Posecamera> {
     for (int i = 0; i <= 3; i++) {
       if (prediction_out[i] != correct_output[i]) {
         head = (head || checkHeadAlignment(pose[i]));
-        if (i >= 1 && i <= 3) {
+        if (i >= 1 || i <= 3) {
           torso = (torso || checkTorsoAngle(pose[0], pose[i]));
           if (i == 1) {
             flatfeet = (flatfeet || checkFlatFoot(pose[0], pose[1]));
@@ -622,16 +610,21 @@ class _PosecameraState extends State<Posecamera> {
                   )
                 : Column(
                     children: [
-                      ClipRect(
+                      Container(
+                        alignment: Alignment.center,
                         child: Image.asset(
                           'assets/images/gif-squating.gif',
                           fit: BoxFit.fill,
-                          height: 500,
-                          alignment: Alignment.center,
+                          width: MediaQuery.of(context).size.width,
+                          height: MediaQuery.of(context).size.height - 180,
                         ),
                       ),
-                      Center(
-                        child: Text("Wait For Feedback . . ."),
+                      Container(
+                        alignment: Alignment.bottomCenter,
+                        child: Text("Wait For Feedback . . .", 
+                          style: TextStyle(color: Colors.blueGrey,
+                          fontWeight: FontWeight.bold,fontSize: 18.0)
+                        ),
                       ),
                     ],
                   )),
