@@ -611,13 +611,13 @@ class _PosecameraState extends State<Posecamera> {
                 : Column(
                     children: <Widget>[
                       Center(
-                        heightFactor: 1.3,
+                        heightFactor: 2,
                         child:Container(
                           child: Image.asset(
                             'assets/images/gif-squating.gif',
                             fit: BoxFit.fill,
-                            width: MediaQuery.of(context).size.width * 0.85,
-                            height: MediaQuery.of(context).size.height * 0.50,
+                            width: MediaQuery.of(context).size.width * 0.55,
+                            height: MediaQuery.of(context).size.height * 0.35,
                             alignment: Alignment.center,
                           ),
                         ),
@@ -625,7 +625,7 @@ class _PosecameraState extends State<Posecamera> {
                       Container(
                         child: Text("Wait For Feedback . . .", textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.blueGrey,
-                          fontWeight: FontWeight.bold,fontSize: 18.0,)
+                          fontWeight: FontWeight.bold,fontSize: 15.0,)
                           ),
                       ),
                     ],
