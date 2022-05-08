@@ -43,6 +43,12 @@ class Instructions extends StatelessWidget {
         appBar: AppBar(
           title: const Text('SmartSquat'),
         ),
+         bottomNavigationBar: BottomAppBar(
+          child: Image.asset(
+                    'assets/images/affiliation-logo.png',
+                    fit: BoxFit.fitWidth,
+                  ),
+        ),
         body: _text,
       ),
     );
