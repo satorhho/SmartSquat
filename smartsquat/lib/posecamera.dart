@@ -477,7 +477,7 @@ class _PosecameraState extends State<Posecamera> {
     torso ? result_feedback += "Bring your torso upright! \n" : null;
     knee
         ? result_feedback +=
-            "Avoid caving your knees!. Point your knees outward! \n"
+            "Avoid caving your knees, instead point your knees outward! \n"
         : null;
     _depth ? result_feedback += "Lower your squat." : null;
 
