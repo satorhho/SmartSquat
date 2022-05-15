@@ -444,6 +444,9 @@ class _PosecameraState extends State<Posecamera> {
         head = (head || checkHeadAlignment(pose[i]));
         if (i >= 1 || i <= 3) {
           torso = (torso || checkTorsoAngle(pose[0], pose[i]));
+          if (i == 1 || i == 2) {
+            kneecaving = (kneecaving || kneeCaveIn(pose[2], pose[3]));
+          }
           if (i == 1) {
             flatfeet = (flatfeet || checkFlatFoot(pose[0], pose[1]));
           }
@@ -451,9 +454,6 @@ class _PosecameraState extends State<Posecamera> {
             flatfeet = (flatfeet || checkFlatFoot(pose[2], pose[3]));
             depth = (depth || depths(pose[i]));
           }
-        }
-        if (i == 3) {
-          kneecaving = (kneecaving || kneeCaveIn(pose[2], pose[i]));
         }
       }
     }
@@ -477,7 +477,7 @@ class _PosecameraState extends State<Posecamera> {
     torso ? result_feedback += "Bring your torso upright! \n" : null;
     knee
         ? result_feedback +=
-            "Avoid caving your knees, instead point your knees outward! \n"
+            "Avoid caving your knees. Instead, point your knees outward! \n"
         : null;
     _depth ? result_feedback += "Lower your squat." : null;
 
