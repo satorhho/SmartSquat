@@ -8,7 +8,7 @@ body_detection 0.0.3 is a flutter API used in the app.  Check links for referenc
 https://pub.dev/packages/body_detection
 https://github.com/0x48lab/flutter_body_detection/tree/main/example/lib
 
-## To Create apk manually using your own PC
+## To create apk manually using your own PC
 Before making it an apk input "flutter pub get" in the cmd. Then input "flutter build apk" for making it an apk
 
 ## Link of the APK
