@@ -13,3 +13,20 @@ Before making it an apk input "flutter pub get" in the cmd. Then input "flutter 
 
 ## Link of the APK
 https://drive.google.com/file/d/1UfXfyrCb3uNd11iUwK7rO6mASMegTR5C/view?usp=sharing
+
+
+
+# SmartSquat(Desktop App) python
+To run the python code the computer must have installed the following:
+
+## Installing python
+Install the python version 3.9 or later than this version https://www.python.org/downloads/
+
+
+## Installing python libraries
+### pip install mediapipe
+### pip install numpy
+### pip install opencv-python
+### pip install matplotlib
+
+
