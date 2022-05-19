@@ -14,9 +14,6 @@ Before making it an apk input "flutter pub get" in the cmd. Then input "flutter 
 ## Link of the APK
 https://drive.google.com/file/d/1UfXfyrCb3uNd11iUwK7rO6mASMegTR5C/view?usp=sharing
 
-###
-###
-
 # SmartSquat(Desktop App) python
 To run the python code the computer must have installed the following:
 
