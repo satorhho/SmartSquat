@@ -15,18 +15,19 @@ Before making it an apk input "flutter pub get" in the cmd. Then input "flutter 
 https://drive.google.com/file/d/1UfXfyrCb3uNd11iUwK7rO6mASMegTR5C/view?usp=sharing
 
 
-
 # SmartSquat(Desktop App) python
 To run the python code the computer must have installed the following:
 
 ## Installing python
-Install the python version 3.9 or later than this version https://www.python.org/downloads/
-
+Install the python version 3.9 or later than this version this is the link for installation https://www.python.org/downloads/
 
 ## Installing python libraries
-### pip install mediapipe
-### pip install numpy
-### pip install opencv-python
-### pip install matplotlib
+1. pip install mediapipe
+2. pip install numpy
+3. pip install opencv-python
+4. pip install matplotlib
+5. pip install tensorflow
+
+For NVIDIA users after installing the tensorflow it may have a problem when running the python code. They may need to follow the instuction in this link  https://www.TensorFlow.org/install/gpu.
 
 
