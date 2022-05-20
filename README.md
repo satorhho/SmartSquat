@@ -13,6 +13,7 @@ Before making it an apk input "flutter pub get" in the cmd. Then input "flutter 
 
 ## Link of the APK
 • https://drive.google.com/file/d/1UfXfyrCb3uNd11iUwK7rO6mASMegTR5C/view?usp=sharing
+
 • https://github.com/satorhho/SmartSquat/blob/a7f669589eff0b4ca45e465f997a39de2eb7decc/SmartSquat.apk
 
 # SmartSquat(Desktop App) python
