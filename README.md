@@ -12,7 +12,8 @@ https://github.com/0x48lab/flutter_body_detection/tree/main/example/lib
 Before making it an apk input "flutter pub get" in the cmd. Then input "flutter build apk" for making it an apk
 
 ## Link of the APK
-https://drive.google.com/file/d/1UfXfyrCb3uNd11iUwK7rO6mASMegTR5C/view?usp=sharing
+• https://drive.google.com/file/d/1UfXfyrCb3uNd11iUwK7rO6mASMegTR5C/view?usp=sharing
+• https://github.com/satorhho/SmartSquat/blob/a7f669589eff0b4ca45e465f997a39de2eb7decc/SmartSquat.apk
 
 # SmartSquat(Desktop App) python
 To run the python code the computer must have installed the following:
