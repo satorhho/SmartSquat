@@ -73,6 +73,7 @@ class _PosecameraState extends State<Posecamera> {
   // ~ CNN
   bool _loading = true;
   late List _output;
+  int thread = Platform.numberOfProcessors;
 
   Future<void> _startCameraStream() async {
     final request = await Permission.camera.request();
@@ -392,6 +393,7 @@ class _PosecameraState extends State<Posecamera> {
     await Tflite.loadModel(
       model: 'assets/smartsquat.tflite',
       labels: 'assets/labels.txt',
+      numThreads: thread
     );
   }
 
@@ -600,6 +602,10 @@ class _PosecameraState extends State<Posecamera> {
                       ),
                       Text(
                         result_feedback,
+                        textAlign: TextAlign.center,
+                      ),
+                      Text(
+                        "Number of Processors: " + thread.toString(),
                         textAlign: TextAlign.center,
                       ),
                       Text(
