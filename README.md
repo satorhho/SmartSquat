@@ -1,5 +1,9 @@
 # SmartSquat(Mobile App)
 
+## SmartSquat CNN Model Repository
+https://github.com/satorhho/SmartSquat-AI
+
+
 ## Installing Flutter
 To install flutter just follow the procedure in this link https://docs.flutter.dev/get-started/install/windows. Depending on the operating system, the Flutter documentation provides various ways to install their framework https://docs.flutter.dev/get-started/install.
 
