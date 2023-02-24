@@ -1,6 +1,6 @@
 # SmartSquat(Mobile App)
 
-## SmartSquat CNN Model Repository
+## SmartSquat ML/AI Utilities Repository
 https://github.com/satorhho/SmartSquat-AI
 
 
